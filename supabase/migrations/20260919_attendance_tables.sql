@@ -1,0 +1,2 @@
+-- Applied via Supabase MCP: create_attendance_tables
+-- See plan: tutors, tutor_attendance, student_visits + seed
