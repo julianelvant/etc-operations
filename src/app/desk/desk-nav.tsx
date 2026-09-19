@@ -21,7 +21,7 @@ export function DeskNav({ today }: { today: string }) {
 
   return (
     <>
-      <nav className="hidden items-center gap-1 sm:flex">
+      <nav className="hidden items-center gap-1 sm:flex" aria-label="Desk">
         {items.map((item) => {
           const active = isActive(pathname, item);
           const href =
@@ -30,7 +30,8 @@ export function DeskNav({ today }: { today: string }) {
             <Link
               key={item.href}
               href={href}
-              className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+              aria-current={active ? "page" : undefined}
+              className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 ${
                 active
                   ? "bg-emerald-600 text-white"
                   : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
@@ -41,7 +42,10 @@ export function DeskNav({ today }: { today: string }) {
           );
         })}
       </nav>
-      <nav className="flex gap-1 border-t border-slate-100 px-4 py-2 sm:hidden">
+      <nav
+        className="flex gap-1 border-t border-slate-100 px-4 py-2 sm:hidden"
+        aria-label="Desk"
+      >
         {items.map((item) => {
           const active = isActive(pathname, item);
           const href =
@@ -50,7 +54,8 @@ export function DeskNav({ today }: { today: string }) {
             <Link
               key={item.href}
               href={href}
-              className={`flex-1 rounded-lg py-2 text-center text-sm font-medium ${
+              aria-current={active ? "page" : undefined}
+              className={`flex min-h-11 flex-1 items-center justify-center rounded-lg text-center text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 ${
                 active
                   ? "bg-emerald-600 text-white"
                   : "bg-slate-50 text-slate-700"

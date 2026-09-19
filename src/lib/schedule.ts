@@ -310,3 +310,94 @@ export function slotLabel(slot: string): string {
   };
   return `${to12(start).replace(/ (AM|PM)$/, "")} - ${to12(end)}`;
 }
+
+export type ShiftStatus = "here" | "due" | "late" | "done" | "upcoming";
+
+export type AttendanceInterval = {
+  tutorNameLower?: string;
+  tutorId?: string;
+  timeInMin: number;
+  timeOutMin: number | null; // null = still open
+};
+
+const DUE_LEAD_MIN = 30;
+const LATE_AFTER_MIN = 15;
+
+/** Status for one merged shift given current Beirut minutes and attendance. */
+export function getShiftStatus(
+  shift: MergedShift,
+  nowMin: number,
+  openTutorIds: Set<string>,
+  closedIntervals: AttendanceInterval[],
+  tutorId?: string,
+): ShiftStatus {
+  if (tutorId && openTutorIds.has(tutorId)) return "here";
+
+  const coveredByClosed = closedIntervals.some((iv) => {
+    if (tutorId && iv.tutorId && iv.tutorId !== tutorId) return false;
+    if (
+      !tutorId &&
+      iv.tutorNameLower &&
+      iv.tutorNameLower !== shift.name.toLowerCase()
+    ) {
+      return false;
+    }
+    if (iv.timeOutMin == null) return false;
+    return iv.timeInMin < shift.end && iv.timeOutMin > shift.start;
+  });
+  if (coveredByClosed) return "done";
+
+  if (shift.end <= nowMin) return "done";
+  if (shift.start > nowMin + DUE_LEAD_MIN) return "upcoming";
+  if (shift.start > nowMin) return "due";
+  // Currently overlapping shift, not checked in
+  if (nowMin - shift.start >= LATE_AFTER_MIN) return "late";
+  return "due";
+}
+
+export type ShiftBoards = {
+  dueNow: (MergedShift & { status: ShiftStatus })[];
+  later: (MergedShift & { status: ShiftStatus })[];
+  done: (MergedShift & { status: ShiftStatus })[];
+};
+
+/** Split today's merged shifts into due-now / later / done (excludes Here). */
+export function bucketShiftsForDesk(
+  shifts: MergedShift[],
+  nowMin: number,
+  openTutorIds: Set<string>,
+  closedIntervals: AttendanceInterval[],
+  nameToTutorId: Map<string, string>,
+): ShiftBoards {
+  const dueNow: ShiftBoards["dueNow"] = [];
+  const later: ShiftBoards["later"] = [];
+  const done: ShiftBoards["done"] = [];
+
+  for (const shift of shifts) {
+    const tutorId = nameToTutorId.get(shift.name.toLowerCase());
+    const status = getShiftStatus(
+      shift,
+      nowMin,
+      openTutorIds,
+      closedIntervals,
+      tutorId,
+    );
+    if (status === "here") continue;
+    const row = { ...shift, status };
+    if (status === "due" || status === "late") dueNow.push(row);
+    else if (status === "upcoming") later.push(row);
+    else done.push(row);
+  }
+
+  dueNow.sort(
+    (a, b) =>
+      (a.status === "late" ? 0 : 1) - (b.status === "late" ? 0 : 1) ||
+      a.start - b.start ||
+      a.name.localeCompare(b.name),
+  );
+  later.sort((a, b) => a.start - b.start || a.name.localeCompare(b.name));
+  done.sort((a, b) => a.start - b.start || a.name.localeCompare(b.name));
+
+  return { dueNow, later, done };
+}
+

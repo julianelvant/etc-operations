@@ -1,14 +1,14 @@
 "use client";
 
 import type { StudentVisitRow, TutorAttendanceRow } from "@/lib/attendance";
-import { formatClock } from "@/lib/schedule";
+import { formatClock, slotLabel } from "@/lib/schedule";
 
 type Props = {
   openTutors: TutorAttendanceRow[];
   visitsByTutorId: Map<string, StudentVisitRow[]>;
   highlightId: string | null;
   isToday: boolean;
-  pending: boolean;
+  isPending: (key: string) => boolean;
   onCheckOut: (id: string) => void;
   onAddStudent: (tutorId: string) => void;
   onCheckOutStudent: (id: string) => void;
@@ -19,7 +19,7 @@ export function HereNowBoard({
   visitsByTutorId,
   highlightId,
   isToday,
-  pending,
+  isPending,
   onCheckOut,
   onAddStudent,
   onCheckOutStudent,
@@ -29,7 +29,7 @@ export function HereNowBoard({
       <div className="flex items-end justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">
-            Operations
+            Live
           </p>
           <h2
             id="here-now-heading"
@@ -44,20 +44,24 @@ export function HereNowBoard({
       </div>
 
       {openTutors.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 px-5 py-10 text-center">
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 px-5 py-8 text-center">
           <p className="font-display text-lg font-semibold text-slate-800">
             No one checked in yet
           </p>
           <p className="mt-1 text-sm text-slate-500">
-            Use the roster below or Walk-in when a tutor arrives.
+            Search a name above or check in from Due now.
           </p>
         </div>
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2">
+        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {openTutors.map((row) => {
             const students = visitsByTutorId.get(row.tutor_id) ?? [];
             const openStudents = students.filter((v) => !v.time_out);
             const hot = highlightId === row.id;
+            const outPending = isPending(`out:${row.id}`);
+            const shiftDisplay = row.scheduled_shift
+              ? slotLabel(row.scheduled_shift.split(",")[0].trim())
+              : null;
             return (
               <li
                 key={row.id}
@@ -72,13 +76,13 @@ export function HereNowBoard({
                     </p>
                     <p className="text-sm text-emerald-100">
                       In since {formatClock(row.time_in)}
-                      {row.scheduled_shift ? ` · ${row.scheduled_shift}` : ""}
+                      {shiftDisplay ? ` · ${shiftDisplay}` : ""}
                     </p>
                   </div>
                   {isToday ? (
                     <button
                       type="button"
-                      disabled={pending}
+                      disabled={outPending}
                       onClick={() => onCheckOut(row.id)}
                       className="inline-flex min-h-11 shrink-0 items-center rounded-lg bg-white/15 px-3 text-sm font-bold hover:bg-white/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-60"
                     >
@@ -104,9 +108,9 @@ export function HereNowBoard({
                           {isToday ? (
                             <button
                               type="button"
-                              disabled={pending}
+                              disabled={isPending(`sout:${v.id}`)}
                               onClick={() => onCheckOutStudent(v.id)}
-                              className="min-h-8 shrink-0 px-1 font-semibold text-emerald-100 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                              className="min-h-8 shrink-0 px-1 font-semibold text-emerald-100 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-60"
                             >
                               Out
                             </button>
