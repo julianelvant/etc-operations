@@ -54,6 +54,100 @@ export function getTodaySchedule() {
   return { date, dayKey, time, slots: daySlots };
 }
 
+/** Parse YYYY-MM-DD as a Beirut calendar day and return schedule slots. */
+export function getScheduleForDate(dateStr: string) {
+  const parts = getBeirutParts(new Date(`${dateStr}T12:00:00+03:00`));
+  // Prefer weekday from the date string itself for stability
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const utcGuess = new Date(Date.UTC(y, m - 1, d, 9, 0, 0));
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    timeZone: TIMEZONE,
+    weekday: "long",
+  })
+    .format(utcGuess)
+    .toLowerCase();
+  const dayKey = weekday as (typeof DAY_KEYS)[number];
+  return {
+    date: dateStr,
+    dayKey,
+    time: parts.date === dateStr ? parts.time : "12:00",
+    slots: schedule.days[dayKey] ?? {},
+    isToday: parts.date === dateStr,
+  };
+}
+
+export function addDays(dateStr: string, delta: number): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + delta));
+  return dt.toISOString().slice(0, 10);
+}
+
+export function startOfWeekMonday(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const utc = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    timeZone: "UTC",
+    weekday: "short",
+  }).format(utc);
+  const map: Record<string, number> = {
+    Mon: 0,
+    Tue: 1,
+    Wed: 2,
+    Thu: 3,
+    Fri: 4,
+    Sat: 5,
+    Sun: 6,
+  };
+  const offset = map[weekday] ?? 0;
+  return addDays(dateStr, -offset);
+}
+
+export function getWeekDates(dateStr: string) {
+  const start = startOfWeekMonday(dateStr);
+  return Array.from({ length: 7 }, (_, i) => {
+    const date = addDays(start, i);
+    const info = getScheduleForDate(date);
+    return {
+      date,
+      dayKey: info.dayKey,
+      label: new Intl.DateTimeFormat("en-US", {
+        weekday: "short",
+        timeZone: "UTC",
+      }).format(new Date(`${date}T12:00:00Z`)),
+      dayNum: Number(date.slice(8, 10)),
+      tutorCount: Object.values(info.slots).reduce(
+        (n, list) => n + list.length,
+        0,
+      ),
+    };
+  });
+}
+
+/** Minutes from midnight in Beirut for an ISO timestamp. */
+export function beirutMinutes(iso: string): number {
+  const fmt = new Intl.DateTimeFormat("en-GB", {
+    timeZone: TIMEZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const parts = Object.fromEntries(
+    fmt.formatToParts(new Date(iso)).map((p) => [p.type, p.value]),
+  );
+  let h = Number(parts.hour === "24" ? "0" : parts.hour);
+  const min = Number(parts.minute);
+  return h * 60 + min;
+}
+
+export function clockToMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + (m || 0);
+}
+
+export const TIMELINE_START_MIN = 12 * 60; // 12:00
+export const TIMELINE_END_MIN = 18 * 60; // 18:00
+export const TIMELINE_PX_PER_MIN = 1.35;
+
 /** Infer contiguous scheduled shift for a tutor on a given weekday, e.g. "13:00-15:00" */
 export function getScheduledShiftForTutor(
   tutorName: string,

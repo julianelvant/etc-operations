@@ -11,20 +11,22 @@ export default async function ExportPage() {
   const { date } = getBeirutParts();
 
   return (
-    <div className="min-h-full bg-gradient-to-b from-slate-50 via-white to-emerald-50">
-      <div className="mx-auto max-w-xl px-6 py-12">
-        <Link
-          href="/desk"
-          className="text-sm font-medium text-emerald-700 hover:text-emerald-600"
-        >
-          ← Back to desk
-        </Link>
-        <h1 className="mt-4 font-display text-3xl font-semibold text-slate-900">
-          Export attendance
-        </h1>
-        <p className="mt-2 text-slate-600">
-          Choose a date range. The download matches your Excel template sheets.
-        </p>
+    <div className="mx-auto w-full max-w-xl px-6 py-10">
+      <Link
+        href={`/desk?date=${date}`}
+        className="text-sm font-semibold text-emerald-700 hover:underline"
+      >
+        ← Back to desk
+      </Link>
+      <h1 className="mt-4 font-display text-3xl font-semibold text-slate-900">
+        Export attendance
+      </h1>
+      <p className="mt-2 text-slate-600">
+        Download an Excel workbook for any date range. Sheets match your
+        template: <strong>General schedule</strong>, <strong>Tutors</strong>,{" "}
+        <strong>Tutoree</strong>.
+      </p>
+      <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <ExportForm today={date} />
       </div>
     </div>

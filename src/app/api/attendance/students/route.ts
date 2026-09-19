@@ -3,13 +3,18 @@ import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { getBeirutParts, minutesBetween } from "@/lib/schedule";
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { date } = getBeirutParts();
+  const url = new URL(request.url);
+  const dateParam = url.searchParams.get("date");
+  const date =
+    dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)
+      ? dateParam
+      : getBeirutParts().date;
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("student_visits")
@@ -22,7 +27,11 @@ export async function GET() {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  return NextResponse.json({ date, rows: data ?? [] });
+  const rows = (data ?? []).map((row) => {
+    const tutors = Array.isArray(row.tutors) ? row.tutors[0] : row.tutors;
+    return { ...row, tutors: tutors ?? null };
+  });
+  return NextResponse.json({ date, rows });
 }
 
 export async function POST(request: Request) {

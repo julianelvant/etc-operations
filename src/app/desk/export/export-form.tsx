@@ -12,7 +12,7 @@ export function ExportForm({ today }: { today: string }) {
   );
 
   return (
-    <div className="mt-8 space-y-4">
+    <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
           <span className="mb-1 block text-sm font-medium text-slate-700">

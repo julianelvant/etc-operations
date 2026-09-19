@@ -1,19 +1,35 @@
-import { logoutAction } from "@/app/login/actions";
 import { getSession } from "@/lib/auth/session";
 import {
   getAttendanceForDate,
   getVisitsForDate,
   listTutors,
 } from "@/lib/attendance";
-import { getTodaySchedule } from "@/lib/schedule";
+import {
+  getBeirutParts,
+  getScheduleForDate,
+  getWeekDates,
+} from "@/lib/schedule";
 import { DeskClient } from "./desk-client";
 import { redirect } from "next/navigation";
 
-export default async function DeskPage() {
+export default async function DeskPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string }>;
+}) {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const { date, dayKey, slots } = getTodaySchedule();
+  const params = await searchParams;
+  const today = getBeirutParts().date;
+  const date =
+    params.date && /^\d{4}-\d{2}-\d{2}$/.test(params.date)
+      ? params.date
+      : today;
+
+  const { dayKey, slots, isToday } = getScheduleForDate(date);
+  const week = getWeekDates(date);
+
   const [tutors, attendance, visits] = await Promise.all([
     listTutors(),
     getAttendanceForDate(date),
@@ -21,30 +37,16 @@ export default async function DeskPage() {
   ]);
 
   return (
-    <div className="min-h-full bg-gradient-to-b from-slate-50 via-white to-emerald-50">
-      <div className="border-b border-slate-200 bg-white/80">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <p className="text-sm text-slate-600">
-            Signed in as <span className="font-medium">{session.username}</span>
-          </p>
-          <form action={logoutAction}>
-            <button
-              type="submit"
-              className="text-sm font-medium text-slate-600 hover:text-slate-900"
-            >
-              Log out
-            </button>
-          </form>
-        </div>
-      </div>
-      <DeskClient
-        date={date}
-        dayKey={dayKey}
-        slots={slots}
-        tutors={tutors}
-        initialAttendance={attendance}
-        initialVisits={visits}
-      />
-    </div>
+    <DeskClient
+      date={date}
+      today={today}
+      dayKey={dayKey}
+      isToday={isToday}
+      slots={slots}
+      week={week}
+      tutors={tutors}
+      initialAttendance={attendance}
+      initialVisits={visits}
+    />
   );
 }
