@@ -13,8 +13,8 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "ETC Operations",
-  description: "Hello world homepage for ETC Operations",
+  title: "ETC Attendance Desk",
+  description: "Tutor and student attendance for ETC Operations",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

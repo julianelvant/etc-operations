@@ -1,31 +1,38 @@
-# ETC Operations
+# ETC Operations — Attendance Desk
 
-Hello world homepage for ETC Operations, set up with the same core stack as Gradeful.
+Tutor check-in and student visit logging for the Engineering Tutoring Center, matching the Excel attendance workflow.
 
 ## Stack
 
-- [Next.js](https://nextjs.org/) (App Router, Turbopack)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [Supabase](https://supabase.com/) (database and auth)
-- [Vercel](https://vercel.com/) (hosting and deployments)
+- Next.js (App Router) on Vercel
+- Supabase (tutors, attendance, student visits)
+- Static weekly schedule seeded from the Excel general schedule
+- Desk login (shared staff credentials)
 
 ## Local development
 
-1. Copy `.env.example` to `.env.local` and fill in your Supabase credentials.
-2. Install dependencies:
+1. Copy `.env.example` to `.env.local` and fill in values.
+2. `npm install`
+3. `npm run dev`
+4. Open [http://localhost:3000](http://localhost:3000) → login → desk
 
-```bash
-npm install
-```
+## Environment variables
 
-3. Start the dev server:
+| Variable | Purpose |
+|----------|---------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
+| `ATTENDANCE_USERNAME` | Desk login username (default `desk`) |
+| `ATTENDANCE_PASSWORD` | Desk login password (required) |
+| `SESSION_SECRET` | Secret for signing session cookies |
 
-```bash
-npm run dev
-```
+## Desk flow
 
-4. Open [http://localhost:3000](http://localhost:3000).
+1. Sign in with staff credentials
+2. Today’s schedule is prefilled — check tutors in/out with one tap
+3. Log student visits linked to a tutor (course + notes)
+4. Export a date range to Excel (General schedule / Tutors / Tutoree sheets)
 
-## Health check
+## Health
 
-`GET /api/health` returns the app and Supabase connection status.
+`GET /api/health` — app + Supabase connectivity
