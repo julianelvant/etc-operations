@@ -13,6 +13,8 @@ type Props = {
   isToday: boolean;
   pending: boolean;
   defaultTutorId: string;
+  /** Prefill walk-in search from the sticky roster index. */
+  initialQuery?: string;
   onCheckIn: (tutor: TutorRow) => void;
   onAddStudent: (payload: {
     studentName: string;
@@ -32,6 +34,7 @@ export function CheckInPanels({
   isToday,
   pending,
   defaultTutorId,
+  initialQuery = "",
   onCheckIn,
   onAddStudent,
 }: Props) {
@@ -44,7 +47,7 @@ export function CheckInPanels({
 
   useEffect(() => {
     if (panel === "student") setTutorId(defaultTutorId);
-    if (panel === "tutor") setQuery("");
+    if (panel === "tutor") setQuery(initialQuery);
     if (panel === "none") {
       setStudentName("");
       setStudentEmail("");
@@ -52,7 +55,7 @@ export function CheckInPanels({
       setStudentNotes("");
       setQuery("");
     }
-  }, [panel, defaultTutorId]);
+  }, [panel, defaultTutorId, initialQuery]);
 
   const available = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -68,22 +71,30 @@ export function CheckInPanels({
   if (panel === "none") return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/30">
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-black/30"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="desk-panel-title"
+    >
       <button
         type="button"
         className="flex-1"
-        aria-label="Close"
+        aria-label="Close panel"
         onClick={onClose}
       />
       <div className="h-full w-full max-w-md overflow-y-auto bg-white p-6 shadow-2xl">
-        <div className="mb-6 flex items-center justify-between">
-          <h3 className="font-display text-xl font-semibold text-slate-900">
+        <div className="mb-6 flex items-center justify-between gap-3">
+          <h3
+            id="desk-panel-title"
+            className="font-display text-xl font-semibold text-slate-900"
+          >
             {panel === "student" ? "Add student" : "Check in walk-in"}
           </h3>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full px-3 py-1 text-sm text-slate-500 hover:bg-slate-100"
+            className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-medium text-slate-600 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
           >
             Close
           </button>
@@ -100,13 +111,13 @@ export function CheckInPanels({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="e.g. Amir or EECE 210"
-                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full rounded-xl border border-slate-300 px-3 py-3 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
               />
             </label>
             <p className="text-sm text-slate-500">
               Tutors not already checked in today.
             </p>
-            <div className="space-y-2">
+            <div className="space-y-2" role="list">
               {available.length === 0 ? (
                 <p className="rounded-xl bg-slate-50 px-3 py-4 text-sm text-slate-500">
                   No matches.
@@ -116,21 +127,25 @@ export function CheckInPanels({
                   <button
                     key={t.id}
                     type="button"
+                    role="listitem"
                     disabled={pending || !isToday}
                     onClick={() => onCheckIn(t)}
-                    className="flex w-full items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-left hover:border-emerald-400 hover:bg-emerald-50 disabled:opacity-60"
+                    className="flex min-h-14 w-full items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-left hover:border-emerald-400 hover:bg-emerald-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:opacity-60"
                   >
                     <span className="min-w-0">
                       <span className="block font-medium text-slate-800">
                         {t.name}
                       </span>
                       {t.courses.length > 0 ? (
-                        <span className="block truncate text-[11px] text-slate-400">
-                          {t.courses.slice(0, 4).join(", ")}
+                        <span className="block truncate text-xs text-slate-400">
+                          {t.courses.slice(0, 2).join(", ")}
+                          {t.courses.length > 2
+                            ? ` +${t.courses.length - 2}`
+                            : ""}
                         </span>
                       ) : null}
                     </span>
-                    <span className="shrink-0 text-xs font-semibold text-emerald-700">
+                    <span className="shrink-0 text-sm font-semibold text-emerald-700">
                       Check in
                     </span>
                   </button>
@@ -163,7 +178,7 @@ export function CheckInPanels({
                 autoFocus
                 value={studentName}
                 onChange={(e) => setStudentName(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full rounded-xl border border-slate-300 px-3 py-3 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
               />
             </label>
             <label className="block">
@@ -172,7 +187,7 @@ export function CheckInPanels({
                 type="email"
                 value={studentEmail}
                 onChange={(e) => setStudentEmail(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full rounded-xl border border-slate-300 px-3 py-3 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
               />
             </label>
             <label className="block">
@@ -186,7 +201,7 @@ export function CheckInPanels({
                   const t = tutors.find((x) => x.id === e.target.value);
                   if (t?.courses?.[0] && !course) setCourse(t.courses[0]);
                 }}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full rounded-xl border border-slate-300 px-3 py-3 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
               >
                 <option value="">— Select —</option>
                 {openTutors.map((a) => (
@@ -209,7 +224,7 @@ export function CheckInPanels({
                 value={course}
                 onChange={(e) => setCourse(e.target.value)}
                 list="courses"
-                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full rounded-xl border border-slate-300 px-3 py-3 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
               />
               <datalist id="courses">
                 {Array.from(new Set(tutors.flatMap((t) => t.courses))).map(
@@ -224,13 +239,13 @@ export function CheckInPanels({
               <input
                 value={studentNotes}
                 onChange={(e) => setStudentNotes(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full rounded-xl border border-slate-300 px-3 py-3 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
               />
             </label>
             <button
               type="submit"
               disabled={pending}
-              className="w-full rounded-full bg-emerald-600 py-3 text-sm font-semibold text-white disabled:opacity-60"
+              className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-emerald-600 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:opacity-60"
             >
               Log visit
             </button>

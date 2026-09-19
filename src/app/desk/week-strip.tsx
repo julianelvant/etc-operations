@@ -73,14 +73,14 @@ export function WeekStrip({
           <button
             type="button"
             onClick={onCheckIn}
-            className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold"
+            className="inline-flex min-h-11 items-center rounded-xl border border-slate-200 px-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
           >
             Check in
           </button>
           <button
             type="button"
             onClick={onAddStudent}
-            className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white"
+            className="inline-flex min-h-11 items-center rounded-xl bg-emerald-600 px-3 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
           >
             Student
           </button>
@@ -95,11 +95,13 @@ export function WeekStrip({
               key={d.date}
               type="button"
               onClick={() => goToDate(d.date)}
-              className={`rounded-2xl px-1 py-2.5 text-center transition ${
+              className={`min-h-14 rounded-2xl px-1 py-2.5 text-center transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 ${
                 selected
                   ? "bg-emerald-600 text-white shadow-md shadow-emerald-200"
                   : "bg-slate-50 text-slate-700 hover:bg-slate-100"
               }`}
+              aria-pressed={selected}
+              aria-label={`${d.label} ${d.dayNum}${isTodayCell ? ", today" : ""}${d.tutorCount ? `, ${d.tutorCount} tutors` : ""}`}
             >
               <div className="text-[10px] font-semibold uppercase opacity-80">
                 {d.label}

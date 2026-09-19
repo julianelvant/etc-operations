@@ -115,10 +115,11 @@ export function getWeekDates(dateStr: string) {
         timeZone: "UTC",
       }).format(new Date(`${date}T12:00:00Z`)),
       dayNum: Number(date.slice(8, 10)),
-      tutorCount: Object.values(info.slots).reduce(
-        (n, list) => n + list.length,
-        0,
-      ),
+      tutorCount: new Set(
+        Object.values(info.slots).flatMap((list) =>
+          list.map((t) => t.name.toLowerCase()),
+        ),
+      ).size,
     };
   });
 }
@@ -148,6 +149,86 @@ export const TIMELINE_START_MIN = 12 * 60; // 12:00
 export const TIMELINE_END_MIN = 18 * 60; // 18:00
 export const TIMELINE_PX_PER_MIN = 1.35;
 
+export type MergedShift = {
+  name: string;
+  courses: string[];
+  start: number;
+  end: number;
+  /** Machine range e.g. "15:00-17:00" for attendance.scheduled_shift */
+  shiftLabel: string;
+};
+
+function minutesToClock(mins: number): string {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+/** Merge contiguous hourly slots into one row per tutor shift for a day. */
+export function getMergedShiftsForDay(
+  slots: Record<string, ScheduledTutor[]>,
+): MergedShift[] {
+  type Interval = { start: number; end: number; courses: string[] };
+  const byTutor = new Map<string, { name: string; intervals: Interval[] }>();
+
+  for (const slot of Object.keys(slots).sort()) {
+    const [a, b] = slot.split("-");
+    const start = clockToMinutes(a);
+    const end = clockToMinutes(b);
+    for (const entry of slots[slot]) {
+      const key = entry.name.toLowerCase();
+      let row = byTutor.get(key);
+      if (!row) {
+        row = { name: entry.name, intervals: [] };
+        byTutor.set(key, row);
+      }
+      row.intervals.push({
+        start,
+        end,
+        courses: [...entry.courses],
+      });
+    }
+  }
+
+  const merged: MergedShift[] = [];
+  for (const row of byTutor.values()) {
+    const sorted = [...row.intervals].sort((x, y) => x.start - y.start);
+    let cur = sorted[0];
+    if (!cur) continue;
+    const courses = new Set(cur.courses);
+
+    const flush = () => {
+      const startClock = minutesToClock(cur.start);
+      const endClock = minutesToClock(cur.end);
+      merged.push({
+        name: row.name,
+        courses: Array.from(courses).sort(),
+        start: cur.start,
+        end: cur.end,
+        shiftLabel: `${startClock}-${endClock}`,
+      });
+    };
+
+    for (let i = 1; i < sorted.length; i++) {
+      const next = sorted[i];
+      if (next.start <= cur.end) {
+        cur = { ...cur, end: Math.max(cur.end, next.end) };
+        for (const c of next.courses) courses.add(c);
+      } else {
+        flush();
+        cur = next;
+        courses.clear();
+        for (const c of next.courses) courses.add(c);
+      }
+    }
+    flush();
+  }
+
+  return merged.sort(
+    (a, b) => a.start - b.start || a.name.localeCompare(b.name),
+  );
+}
+
 /** Infer contiguous scheduled shift for a tutor on a given weekday, e.g. "13:00-15:00" */
 export function getScheduledShiftForTutor(
   tutorName: string,
@@ -155,21 +236,12 @@ export function getScheduledShiftForTutor(
 ): string {
   const day = schedule.days[dayKey];
   if (!day) return "";
-
-  const slots = Object.keys(day).sort();
-  const matching: string[] = [];
-  for (const slot of slots) {
-    if (day[slot].some((t) => t.name.toLowerCase() === tutorName.toLowerCase())) {
-      matching.push(slot);
-    }
-  }
-  if (matching.length === 0) return "";
-  if (matching.length === 1) return matching[0];
-
-  // Merge contiguous slots
-  const starts = matching.map((s) => s.split("-")[0]);
-  const ends = matching.map((s) => s.split("-")[1]);
-  return `${starts[0]}-${ends[ends.length - 1]}`;
+  const shifts = getMergedShiftsForDay(day).filter(
+    (s) => s.name.toLowerCase() === tutorName.toLowerCase(),
+  );
+  if (shifts.length === 0) return "";
+  if (shifts.length === 1) return shifts[0].shiftLabel;
+  return shifts.map((s) => s.shiftLabel).join(", ");
 }
 
 export function getTutorsForDay(dayKey: string): ScheduledTutor[] {
