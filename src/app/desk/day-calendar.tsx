@@ -33,11 +33,13 @@ type Props = {
   nameToTutor: Map<string, TutorRow>;
   checkedInIds: Set<string>;
   isToday: boolean;
-  isPending: (key: string) => boolean;
-  onCheckIn: (tutor: TutorRow, scheduledShift: string) => void;
+  isPending?: (key: string) => boolean;
+  onCheckIn?: (tutor: TutorRow, scheduledShift: string) => void;
+  /** Admin / read-only: hide check-in controls */
+  readOnly?: boolean;
 };
 
-const LANE_MIN_PX = 176;
+const LANE_MIN_PX = 232;
 
 function assignLanes(
   blocks: Omit<CalendarBlock, "lane" | "laneCount">[],
@@ -98,8 +100,9 @@ export function DayCalendar({
   nameToTutor,
   checkedInIds,
   isToday,
-  isPending,
+  isPending = () => false,
   onCheckIn,
+  readOnly = false,
 }: Props) {
   const rangeStart = TIMELINE_START_MIN;
   const rangeEnd = TIMELINE_END_MIN;
@@ -289,16 +292,18 @@ export function DayCalendar({
                   TIMELINE_PX_PER_MIN;
               const bottomMin = Math.min(b.endMin, rangeEnd);
               const height = Math.max(
-                40,
+                56,
                 (bottomMin - Math.max(b.startMin, rangeStart)) *
                   TIMELINE_PX_PER_MIN -
-                  4,
+                  6,
               );
-              const leftPx = b.lane * LANE_MIN_PX + 4;
-              const widthPx = LANE_MIN_PX - 8;
+              const leftPx = b.lane * LANE_MIN_PX + 6;
+              const widthPx = LANE_MIN_PX - 12;
               const pending = b.tutor && isPending(`in:${b.tutor.id}`);
               const canCheckIn =
+                !readOnly &&
                 isToday &&
+                Boolean(onCheckIn) &&
                 b.tutor &&
                 b.status === "scheduled" &&
                 !checkedInIds.has(b.tutor.id);
@@ -307,53 +312,55 @@ export function DayCalendar({
                 b.status === "here"
                   ? "border-emerald-600 bg-emerald-600 text-white"
                   : b.status === "done"
-                    ? "border-slate-200 bg-slate-100 text-slate-700"
+                    ? "border-slate-200 bg-slate-50 text-slate-800"
                     : "border-emerald-200 bg-emerald-50 text-slate-900";
 
               return (
                 <div
                   key={b.key}
-                  className={`absolute overflow-hidden rounded-lg border px-2.5 py-2 shadow-sm ${tone}`}
+                  className={`absolute rounded-xl border px-3 py-2 shadow-sm ${tone}`}
                   style={{ top, height, left: leftPx, width: widthPx }}
                   title={`${b.name} · ${formatShiftRange(b.shiftLabel)}`}
                 >
-                  <div className="flex h-full min-h-0 flex-col gap-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="min-w-0 text-sm font-semibold leading-snug break-words">
-                        {b.name}
-                      </p>
-                      <span
-                        className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                          b.status === "here"
-                            ? "bg-white/20 text-white"
-                            : b.status === "done"
-                              ? "bg-slate-200 text-slate-600"
-                              : "bg-emerald-100 text-emerald-800"
-                        }`}
-                      >
-                        {b.status === "here"
-                          ? "Here"
-                          : b.status === "done"
-                            ? "Done"
-                            : "Sched"}
-                      </span>
-                    </div>
+                  <div className="flex h-full min-h-0 flex-col gap-1.5 overflow-y-auto">
+                    <p className="text-sm font-semibold leading-snug break-words">
+                      {b.name}
+                    </p>
                     <p
-                      className={`text-xs tabular-nums leading-snug ${
+                      className={`text-xs tabular-nums leading-snug break-words ${
                         b.status === "here"
                           ? "text-emerald-50"
-                          : "text-slate-500"
+                          : "text-slate-600"
                       }`}
                     >
                       {formatShiftRange(b.shiftLabel)}
-                      {b.timeInLabel ? ` · in ${b.timeInLabel}` : ""}
+                      {b.timeInLabel ? (
+                        <span className="block opacity-90">
+                          in {b.timeInLabel}
+                        </span>
+                      ) : null}
                     </p>
-                    {b.courses.length > 0 && height > 72 ? (
+                    <span
+                      className={`w-fit rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                        b.status === "here"
+                          ? "bg-white/20 text-white"
+                          : b.status === "done"
+                            ? "bg-slate-200 text-slate-600"
+                            : "bg-emerald-100 text-emerald-800"
+                      }`}
+                    >
+                      {b.status === "here"
+                        ? "Here"
+                        : b.status === "done"
+                          ? "Done"
+                          : "Scheduled"}
+                    </span>
+                    {b.courses.length > 0 && height > 110 ? (
                       <p
                         className={`line-clamp-2 text-[11px] leading-snug break-words ${
                           b.status === "here"
                             ? "text-emerald-100/90"
-                            : "text-slate-400"
+                            : "text-slate-500"
                         }`}
                       >
                         {b.courses.join(", ")}
@@ -363,8 +370,8 @@ export function DayCalendar({
                       <button
                         type="button"
                         disabled={!!pending}
-                        onClick={() => onCheckIn(b.tutor!, b.shiftLabel)}
-                        className="mt-auto inline-flex min-h-9 items-center justify-center rounded-md bg-emerald-600 px-2 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-60"
+                        onClick={() => onCheckIn?.(b.tutor!, b.shiftLabel)}
+                        className="mt-auto inline-flex min-h-9 shrink-0 items-center justify-center rounded-md bg-emerald-600 px-2 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-60"
                       >
                         Check in
                       </button>

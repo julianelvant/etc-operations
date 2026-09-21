@@ -16,10 +16,11 @@ export default async function LoginPage({
             ETC Operations
           </p>
           <h1 className="mt-2 font-display text-3xl font-semibold text-slate-900">
-            Desk login
+            Sign in
           </h1>
           <p className="mt-2 text-sm text-slate-600">
-            Sign in to check tutors in and log student visits.
+            Desk and admin accounts use this same door — you&apos;ll land in the
+            right place.
           </p>
         </div>
         <LoginForm next={next} />
