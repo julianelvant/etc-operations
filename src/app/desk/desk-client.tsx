@@ -9,7 +9,7 @@ import {
 } from "@/lib/schedule";
 import { CheckInPanels } from "./check-in-panels";
 import type { DeskClientProps } from "./desk-types";
-import { DueNowBoard, LaterToday } from "./due-now-board";
+import { DayScheduleList, DueNowBoard, LaterToday } from "./due-now-board";
 import { HereNowBoard } from "./here-now-board";
 import { OpsBar } from "./ops-bar";
 import { useDeskLive } from "./use-desk-live";
@@ -71,6 +71,16 @@ export function DeskClient({
     live.closedIntervals,
     nameToTutorId,
   ]);
+
+  const dayShifts = useMemo(() => getMergedShiftsForDay(slots), [slots]);
+
+  const closedTutorIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const a of live.attendance) {
+      if (a.time_out) ids.add(a.tutor_id);
+    }
+    return ids;
+  }, [live.attendance]);
 
   useEffect(() => {
     setSearchSeed("");
@@ -159,6 +169,7 @@ export function DeskClient({
             onCheckOut={(id) => live.checkOutTutor(id)}
             onAddStudent={(tutorId) => live.openStudentPanel(tutorId)}
             onCheckOutStudent={live.checkOutStudent}
+            onUpdateTutorMeta={live.updateTutorMeta}
           />
 
           <div className="space-y-6">
@@ -167,7 +178,7 @@ export function DeskClient({
               nameToTutor={nameToTutor}
               isToday={isToday}
               isPending={live.isPending}
-              onCheckIn={live.checkInTutor}
+              onCheckIn={(t, shift) => live.checkInTutor(t, shift)}
             />
 
             <LaterToday
@@ -175,7 +186,7 @@ export function DeskClient({
               nameToTutor={nameToTutor}
               isToday={isToday}
               isPending={live.isPending}
-              onCheckIn={live.checkInTutor}
+              onCheckIn={(t, shift) => live.checkInTutor(t, shift)}
             />
 
             {boards.done.length > 0 ? (
@@ -210,6 +221,16 @@ export function DeskClient({
                 </ul>
               </details>
             ) : null}
+
+            <DayScheduleList
+              shifts={dayShifts}
+              nameToTutor={nameToTutor}
+              checkedInIds={live.checkedInIds}
+              closedTutorIds={closedTutorIds}
+              isToday={isToday}
+              isPending={live.isPending}
+              onCheckIn={(t, shift) => live.checkInTutor(t, shift)}
+            />
           </div>
         </div>
       </div>
@@ -240,7 +261,12 @@ export function DeskClient({
         isPending={live.isPending}
         defaultTutorId={live.defaultTutorId}
         initialQuery={searchSeed}
-        onCheckIn={(t) => live.checkInTutor(t)}
+        onCheckIn={(t, opts) =>
+          live.checkInTutor(t, opts?.scheduledShift, {
+            notes: opts?.notes,
+            role: opts?.role,
+          })
+        }
         onAddStudent={live.addStudent}
       />
     </div>

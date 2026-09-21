@@ -59,7 +59,7 @@ export async function POST(request: Request) {
   if (action === "check_in") {
     const tutorId = String(body.tutorId ?? "");
     const notes = String(body.notes ?? "");
-    const role = String(body.role ?? "Tutor");
+    const role = String(body.role ?? "Tutor").trim() || "Tutor";
     if (!tutorId) {
       return NextResponse.json({ error: "tutorId required" }, { status: 400 });
     }
@@ -148,15 +148,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ row: data });
   }
 
-  if (action === "update_notes") {
+  if (action === "update_notes" || action === "update") {
     const id = String(body.id ?? "");
-    const notes = String(body.notes ?? "");
     if (!id) {
       return NextResponse.json({ error: "id required" }, { status: 400 });
     }
+    const patch: { notes?: string; role?: string } = {};
+    if (body.notes !== undefined) patch.notes = String(body.notes);
+    if (body.role !== undefined) {
+      patch.role = String(body.role).trim() || "Tutor";
+    }
+    if (Object.keys(patch).length === 0) {
+      return NextResponse.json(
+        { error: "notes or role required" },
+        { status: 400 },
+      );
+    }
     const { data, error } = await supabase
       .from("tutor_attendance")
-      .update({ notes })
+      .update(patch)
       .eq("id", id)
       .select(
         "id, attendance_date, tutor_id, scheduled_shift, role, time_in, time_out, total_hours, notes, tutors(id, name, courses)",

@@ -202,7 +202,11 @@ export function useDeskLive({
     setPanel("tutor");
   }
 
-  async function checkInTutor(tutor: TutorRow, scheduledShift?: string) {
+  async function checkInTutor(
+    tutor: TutorRow,
+    scheduledShift?: string,
+    opts?: { notes?: string; role?: string },
+  ) {
     if (!isToday) {
       setErrorMsg("Switch to today to check someone in.");
       return;
@@ -218,6 +222,8 @@ export function useDeskLive({
         action: "check_in",
         tutorId: tutor.id,
         scheduledShift: scheduledShift ?? "",
+        notes: opts?.notes ?? "",
+        role: opts?.role ?? "Tutor",
       });
       knownIds.current.add(row.id);
       setAttendance((prev) => {
@@ -231,6 +237,31 @@ export function useDeskLive({
       window.setTimeout(() => setHighlightId(null), 4000);
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : "Check-in failed");
+    } finally {
+      setPending(key, false);
+    }
+  }
+
+  async function updateTutorMeta(
+    id: string,
+    patch: { notes?: string; role?: string },
+  ) {
+    const key = `meta:${id}`;
+    setPending(key, true);
+    try {
+      const { row: updated } = await api("/api/attendance/tutors", {
+        action: "update",
+        id,
+        ...patch,
+      });
+      setAttendance((prev) => {
+        const next = prev.map((r) => (r.id === id ? updated : r));
+        attFp.current = attendanceFingerprint(next);
+        return next;
+      });
+      flash("Saved");
+    } catch (e) {
+      setErrorMsg(e instanceof Error ? e.message : "Update failed");
     } finally {
       setPending(key, false);
     }
@@ -344,6 +375,7 @@ export function useDeskLive({
     openTutorPanel,
     checkInTutor,
     checkOutTutor,
+    updateTutorMeta,
     addStudent,
     checkOutStudent,
   };
