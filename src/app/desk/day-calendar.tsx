@@ -39,7 +39,7 @@ type Props = {
   readOnly?: boolean;
 };
 
-const LANE_MIN_PX = 232;
+const LANE_MIN_PX = 288;
 
 function assignLanes(
   blocks: Omit<CalendarBlock, "lane" | "laneCount">[],
@@ -233,7 +233,7 @@ export function DayCalendar({
   }, [rangeStart, rangeEnd]);
 
   const laneCount = Math.max(1, ...blocks.map((b) => b.laneCount));
-  const gridWidthPx = Math.max(laneCount * LANE_MIN_PX, 520);
+  const gridWidthPx = Math.max(laneCount * LANE_MIN_PX, 720);
 
   return (
     <section className="space-y-3" aria-labelledby="day-calendar-heading">
@@ -315,63 +315,53 @@ export function DayCalendar({
                     ? "border-slate-200 bg-slate-50 text-slate-800"
                     : "border-emerald-200 bg-emerald-50 text-slate-900";
 
+              const statusLabel =
+                b.status === "here"
+                  ? "Here"
+                  : b.status === "done"
+                    ? "Done"
+                    : null;
+
               return (
                 <div
                   key={b.key}
-                  className={`absolute rounded-xl border px-3 py-2 shadow-sm ${tone}`}
+                  className={`absolute overflow-hidden rounded-xl border px-3 py-2 shadow-sm ${tone}`}
                   style={{ top, height, left: leftPx, width: widthPx }}
                   title={`${b.name} · ${formatShiftRange(b.shiftLabel)}`}
                 >
-                  <div className="flex h-full min-h-0 flex-col gap-1.5 overflow-y-auto">
-                    <p className="text-sm font-semibold leading-snug break-words">
-                      {b.name}
-                    </p>
+                  <div className="flex h-full min-h-0 flex-col gap-1">
+                    <div className="flex min-w-0 items-start justify-between gap-2">
+                      <p className="min-w-0 truncate text-sm font-semibold leading-snug">
+                        {b.name}
+                      </p>
+                      {statusLabel ? (
+                        <span
+                          className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                            b.status === "here"
+                              ? "bg-white/20 text-white"
+                              : "bg-slate-200 text-slate-600"
+                          }`}
+                        >
+                          {statusLabel}
+                        </span>
+                      ) : null}
+                    </div>
                     <p
-                      className={`text-xs tabular-nums leading-snug break-words ${
+                      className={`truncate whitespace-nowrap text-xs tabular-nums leading-snug ${
                         b.status === "here"
                           ? "text-emerald-50"
                           : "text-slate-600"
                       }`}
                     >
                       {formatShiftRange(b.shiftLabel)}
-                      {b.timeInLabel ? (
-                        <span className="block opacity-90">
-                          in {b.timeInLabel}
-                        </span>
-                      ) : null}
+                      {b.timeInLabel ? ` · in ${b.timeInLabel}` : ""}
                     </p>
-                    <span
-                      className={`w-fit rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                        b.status === "here"
-                          ? "bg-white/20 text-white"
-                          : b.status === "done"
-                            ? "bg-slate-200 text-slate-600"
-                            : "bg-emerald-100 text-emerald-800"
-                      }`}
-                    >
-                      {b.status === "here"
-                        ? "Here"
-                        : b.status === "done"
-                          ? "Done"
-                          : "Scheduled"}
-                    </span>
-                    {b.courses.length > 0 && height > 150 ? (
-                      <p
-                        className={`line-clamp-2 text-[11px] leading-snug break-words ${
-                          b.status === "here"
-                            ? "text-emerald-100/90"
-                            : "text-slate-500"
-                        }`}
-                      >
-                        {b.courses.join(", ")}
-                      </p>
-                    ) : null}
                     {canCheckIn ? (
                       <button
                         type="button"
                         disabled={!!pending}
                         onClick={() => onCheckIn?.(b.tutor!, b.shiftLabel)}
-                        className="mt-auto inline-flex min-h-9 shrink-0 items-center justify-center rounded-md bg-emerald-600 px-2 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-60"
+                        className="mt-auto inline-flex min-h-8 shrink-0 items-center justify-center rounded-md bg-emerald-600 px-2 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-60"
                       >
                         Check in
                       </button>

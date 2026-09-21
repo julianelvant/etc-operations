@@ -63,7 +63,7 @@ export function HereNowBoard({
           </p>
         </div>
       ) : (
-        <ul className="grid gap-4 grid-cols-1 xl:grid-cols-2">
+        <ul className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
           {openTutors.map((row) => {
             const students = visitsByTutorId.get(row.tutor_id) ?? [];
             const openStudents = students.filter((v) => !v.time_out);
@@ -81,13 +81,17 @@ export function HereNowBoard({
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="font-display text-lg font-semibold leading-snug">
+                    <p className="truncate font-display text-lg font-semibold leading-snug">
                       {row.tutors?.name ?? "Tutor"}
                     </p>
                     <p className="mt-0.5 text-sm text-emerald-100">
                       In since {formatClock(row.time_in)}
-                      {shiftDisplay ? ` · ${shiftDisplay}` : ""}
                     </p>
+                    {shiftDisplay ? (
+                      <p className="mt-0.5 whitespace-nowrap text-sm tabular-nums text-emerald-100/90">
+                        {shiftDisplay}
+                      </p>
+                    ) : null}
                   </div>
                   {isToday ? (
                     <button
