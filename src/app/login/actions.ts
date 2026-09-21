@@ -5,12 +5,11 @@ import { redirect } from "next/navigation";
 import {
   clearSessionCookie,
   createSessionToken,
-  getDeskCredentials,
   getSession,
   newSessionId,
-  resolveLoginRole,
   setSessionCookie,
 } from "@/lib/auth/session";
+import { authenticateStaff } from "@/lib/auth/staff-accounts";
 import {
   recordSessionLogin,
   recordSessionLogout,
@@ -23,16 +22,22 @@ export async function loginAction(
   const password = String(formData.get("password") ?? "");
   const nextRaw = String(formData.get("next") ?? "");
 
-  const desk = getDeskCredentials();
-  if (!desk.password) {
-    return { error: "ATTENDANCE_PASSWORD is not configured on the server." };
+  let auth: Awaited<ReturnType<typeof authenticateStaff>> = null;
+  try {
+    auth = await authenticateStaff(username, password);
+  } catch (e) {
+    return {
+      error:
+        e instanceof Error
+          ? `Login failed: ${e.message}`
+          : "Login failed",
+    };
   }
-
-  const role = resolveLoginRole(username, password);
-  if (!role) {
+  if (!auth) {
     return { error: "Invalid username or password." };
   }
 
+  const role = auth.role;
   const sessionId = newSessionId();
   const loggedInAt = Date.now();
   const hdrs = await headers();
@@ -41,7 +46,7 @@ export async function loginAction(
   try {
     await recordSessionLogin({
       sessionId,
-      username,
+      username: auth.username,
       role,
       userAgent,
     });
@@ -55,7 +60,7 @@ export async function loginAction(
   }
 
   const token = await createSessionToken({
-    username,
+    username: auth.username,
     role,
     loggedInAt,
     sessionId,
@@ -64,9 +69,7 @@ export async function loginAction(
 
   const defaultNext = role === "admin" ? "/admin" : "/desk";
   let next = nextRaw.startsWith("/") ? nextRaw : defaultNext;
-  // Desk users cannot land on admin
   if (role === "desk" && next.startsWith("/admin")) next = "/desk";
-  // No explicit next → role home (do not keep a stale /desk default for admins)
   if (!nextRaw) next = defaultNext;
 
   redirect(next);
