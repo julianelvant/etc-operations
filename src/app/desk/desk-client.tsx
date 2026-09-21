@@ -154,7 +154,7 @@ export function DeskClient({
       )}
 
       <div className="relative flex-1 overflow-y-auto px-4 py-5 lg:px-8">
-        <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-10">
+        <div className="flex w-full flex-col gap-10">
           <HereNowBoard
             openTutors={live.openTutors}
             visitsByTutorId={live.visitsByTutorId}

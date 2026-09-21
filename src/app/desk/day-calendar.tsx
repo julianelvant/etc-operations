@@ -39,7 +39,7 @@ type Props = {
   readOnly?: boolean;
 };
 
-const LANE_MIN_PX = 288;
+const LANE_MIN_PX = 300;
 
 function assignLanes(
   blocks: Omit<CalendarBlock, "lane" | "laneCount">[],
