@@ -355,7 +355,7 @@ export function DayCalendar({
                           ? "Done"
                           : "Scheduled"}
                     </span>
-                    {b.courses.length > 0 && height > 110 ? (
+                    {b.courses.length > 0 && height > 150 ? (
                       <p
                         className={`line-clamp-2 text-[11px] leading-snug break-words ${
                           b.status === "here"
