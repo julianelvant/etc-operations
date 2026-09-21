@@ -6,7 +6,8 @@ export default async function LoginPage({
   searchParams: Promise<{ next?: string }>;
 }) {
   const params = await searchParams;
-  const next = params.next ?? "/desk";
+  // Empty next lets loginAction send each role to its home (/admin or /desk).
+  const next = params.next ?? "";
 
   return (
     <div className="flex min-h-full flex-1 items-center justify-center bg-gradient-to-b from-slate-50 via-white to-emerald-50 px-6 py-16">

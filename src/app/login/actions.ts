@@ -66,11 +66,7 @@ export async function loginAction(
   let next = nextRaw.startsWith("/") ? nextRaw : defaultNext;
   // Desk users cannot land on admin
   if (role === "desk" && next.startsWith("/admin")) next = "/desk";
-  // Prefer role home unless next is a sensible in-role path
-  if (role === "admin" && (next === "/desk" || next.startsWith("/desk?"))) {
-    // allow admin to open desk if they asked; otherwise default admin
-    if (!nextRaw) next = "/admin";
-  }
+  // No explicit next → role home (do not keep a stale /desk default for admins)
   if (!nextRaw) next = defaultNext;
 
   redirect(next);
