@@ -1,4 +1,5 @@
 import scheduleData from "@/data/schedule.json";
+import { formatShiftRange } from "@/lib/shift-time";
 
 export type ScheduledTutor = {
   name: string;
@@ -298,17 +299,7 @@ export function minutesBetween(timeIn: string, timeOut: string): number {
 }
 
 export function slotLabel(slot: string): string {
-  // "13:00-14:00" -> "1:00 - 2:00 PM"
-  const [start, end] = slot.split("-");
-  const to12 = (t: string) => {
-    const [hStr, m] = t.split(":");
-    let h = Number(hStr);
-    const suffix = h >= 12 ? "PM" : "AM";
-    if (h === 0) h = 12;
-    else if (h > 12) h -= 12;
-    return `${h}:${m} ${suffix}`;
-  };
-  return `${to12(start).replace(/ (AM|PM)$/, "")} - ${to12(end)}`;
+  return formatShiftRange(slot) || slot;
 }
 
 export type ShiftStatus = "here" | "due" | "late" | "done" | "upcoming";

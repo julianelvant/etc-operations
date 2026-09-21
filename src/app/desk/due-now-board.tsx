@@ -1,8 +1,7 @@
 "use client";
 
 import type { TutorRow } from "@/lib/attendance";
-import { slotLabel, type ShiftStatus } from "@/lib/schedule";
-import type { MergedShift } from "@/lib/schedule";
+import { slotLabel, type MergedShift, type ShiftStatus } from "@/lib/schedule";
 
 type Row = MergedShift & { status: ShiftStatus };
 
@@ -11,7 +10,11 @@ type Props = {
   nameToTutor: Map<string, TutorRow>;
   isToday: boolean;
   isPending: (key: string) => boolean;
-  onCheckIn: (tutor: TutorRow, scheduledShift: string) => void;
+  onCheckIn: (
+    tutor: TutorRow,
+    scheduledShift: string,
+    opts?: { notes?: string; role?: string },
+  ) => void;
 };
 
 export function DueNowBoard({
@@ -22,7 +25,7 @@ export function DueNowBoard({
   onCheckIn,
 }: Props) {
   return (
-    <section className="space-y-3" aria-labelledby="due-now-heading">
+    <section className="space-y-4" aria-labelledby="due-now-heading">
       <div className="flex items-end justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-amber-800">
@@ -54,31 +57,28 @@ export function DueNowBoard({
           {rows.map((row) => {
             const tutor = nameToTutor.get(row.name.toLowerCase());
             const pending = tutor ? isPending(`in:${tutor.id}`) : false;
-            const coursePreview = row.courses.slice(0, 2).join(", ");
-            const extra = row.courses.length - 2;
             return (
               <li
                 key={`${row.name}-${row.shiftLabel}`}
-                className="flex items-center justify-between gap-3 px-3 py-3 sm:px-4"
+                className="flex flex-wrap items-start justify-between gap-3 px-4 py-3.5"
               >
-                <div className="min-w-0">
-                  <p className="truncate text-base font-semibold text-slate-900">
+                <div className="min-w-0 flex-1">
+                  <p className="text-base font-semibold leading-snug text-slate-900">
                     {row.name}
                   </p>
-                  <p className="text-sm text-slate-500">
+                  <p className="mt-0.5 text-sm text-slate-500">
                     {slotLabel(row.shiftLabel)}
                   </p>
                   {row.courses.length > 0 ? (
                     <p
-                      className="truncate text-xs text-slate-400"
+                      className="mt-1 text-xs leading-snug text-slate-400 break-words"
                       title={row.courses.join(", ")}
                     >
-                      {coursePreview}
-                      {extra > 0 ? ` +${extra}` : ""}
+                      {row.courses.join(", ")}
                     </p>
                   ) : null}
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
                   <StatusPill status={row.status} />
                   {tutor && isToday ? (
                     <button
@@ -97,68 +97,6 @@ export function DueNowBoard({
         </ul>
       )}
     </section>
-  );
-}
-
-export function LaterToday({
-  rows,
-  nameToTutor,
-  isToday,
-  isPending,
-  onCheckIn,
-}: Props) {
-  if (rows.length === 0) return null;
-
-  return (
-    <details className="group rounded-2xl border border-slate-200 bg-white open:shadow-sm">
-      <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 [&::-webkit-details-marker]:hidden">
-        <span>
-          <span className="block text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Schedule
-          </span>
-          <span className="font-display text-lg font-semibold text-slate-900">
-            Later today
-          </span>
-        </span>
-        <span className="text-sm tabular-nums text-slate-500">
-          {rows.length} · expand
-        </span>
-      </summary>
-      <ul className="divide-y divide-slate-100 border-t border-slate-100">
-        {rows.map((row) => {
-          const tutor = nameToTutor.get(row.name.toLowerCase());
-          const pending = tutor ? isPending(`in:${tutor.id}`) : false;
-          return (
-            <li
-              key={`${row.name}-${row.shiftLabel}`}
-              className="flex items-center justify-between gap-3 px-4 py-3"
-            >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-slate-900">
-                  {row.name}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {slotLabel(row.shiftLabel)}
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <StatusPill status={row.status} />
-                {tutor && isToday ? (
-                  <button
-                    type="button"
-                    disabled={pending}
-                    onClick={() => onCheckIn(tutor, row.shiftLabel)}
-                    className="inline-flex min-h-11 items-center rounded-full border border-slate-200 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:opacity-60"
-                  >
-                    Check in
-                  </button>
-                ) : null}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    </details>
   );
 }
 

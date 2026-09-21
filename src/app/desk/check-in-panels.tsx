@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { TutorAttendanceRow, TutorRow } from "@/lib/attendance";
 import type { DeskPanel } from "./desk-types";
 
+const ROLE_OPTIONS = ["Tutor", "TA", "Coordinator", "Other"] as const;
+
 type Props = {
   panel: DeskPanel;
   onClose: () => void;
@@ -14,7 +16,10 @@ type Props = {
   isPending: (key: string) => boolean;
   defaultTutorId: string;
   initialQuery?: string;
-  onCheckIn: (tutor: TutorRow) => void;
+  onCheckIn: (
+    tutor: TutorRow,
+    opts?: { notes?: string; role?: string; scheduledShift?: string },
+  ) => void;
   onAddStudent: (payload: {
     studentName: string;
     studentEmail: string;
@@ -40,6 +45,8 @@ export function CheckInPanels({
   const panelRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
   const [query, setQuery] = useState("");
+  const [tutorNotes, setTutorNotes] = useState("");
+  const [tutorRole, setTutorRole] = useState<string>("Tutor");
   const [studentName, setStudentName] = useState("");
   const [studentEmail, setStudentEmail] = useState("");
   const [course, setCourse] = useState("");
@@ -93,6 +100,8 @@ export function CheckInPanels({
       setCourse("");
       setStudentNotes("");
       setQuery("");
+      setTutorNotes("");
+      setTutorRole("Tutor");
     }
   }, [panel, defaultTutorId, initialQuery]);
 
@@ -159,6 +168,34 @@ export function CheckInPanels({
                 className="w-full rounded-xl border border-slate-300 px-3 py-3 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
               />
             </label>
+            <label className="block">
+              <span className="mb-1 block text-sm font-medium text-slate-700">
+                Role
+              </span>
+              <select
+                value={tutorRole}
+                onChange={(e) => setTutorRole(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 px-3 py-3 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+              >
+                {ROLE_OPTIONS.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-sm font-medium text-slate-700">
+                Comment
+              </span>
+              <textarea
+                value={tutorNotes}
+                onChange={(e) => setTutorNotes(e.target.value)}
+                rows={2}
+                placeholder="Optional — exports to Tutors Notes"
+                className="w-full resize-y rounded-xl border border-slate-300 px-3 py-3 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+              />
+            </label>
             <p className="text-sm text-slate-500">
               Tutors not already checked in today.
             </p>
@@ -173,23 +210,25 @@ export function CheckInPanels({
                     <button
                       type="button"
                       disabled={isPending(`in:${t.id}`) || !isToday}
-                      onClick={() => onCheckIn(t)}
-                      className="flex min-h-14 w-full items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-left hover:border-emerald-400 hover:bg-emerald-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:opacity-60"
+                      onClick={() =>
+                        onCheckIn(t, {
+                          notes: tutorNotes,
+                          role: tutorRole,
+                        })
+                      }
+                      className="flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 text-left hover:border-emerald-400 hover:bg-emerald-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:opacity-60"
                     >
                       <span className="min-w-0">
                         <span className="block font-medium text-slate-800">
                           {t.name}
                         </span>
                         {t.courses.length > 0 ? (
-                          <span className="block truncate text-xs text-slate-400">
-                            {t.courses.slice(0, 2).join(", ")}
-                            {t.courses.length > 2
-                              ? ` +${t.courses.length - 2}`
-                              : ""}
+                          <span className="block text-xs leading-snug text-slate-400 break-words">
+                            {t.courses.join(", ")}
                           </span>
                         ) : null}
                       </span>
-                      <span className="shrink-0 text-sm font-semibold text-emerald-700">
+                      <span className="w-20 shrink-0 text-right text-sm font-semibold text-emerald-700">
                         Check in
                       </span>
                     </button>
@@ -217,7 +256,7 @@ export function CheckInPanels({
             className="space-y-4"
           >
             <label className="block">
-              <span className="mb-1 block text-sm font-medium">Name</span>
+              <span className="mb-1 block text-sm font-medium">std name</span>
               <input
                 required
                 value={studentName}
@@ -226,7 +265,7 @@ export function CheckInPanels({
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-sm font-medium">Email</span>
+              <span className="mb-1 block text-sm font-medium">std email</span>
               <input
                 type="email"
                 value={studentEmail}
@@ -236,7 +275,7 @@ export function CheckInPanels({
             </label>
             <label className="block">
               <span className="mb-1 block text-sm font-medium">
-                Tutor who helped
+                tutor who helped
               </span>
               <select
                 value={tutorId}
@@ -269,7 +308,7 @@ export function CheckInPanels({
               </p>
             ) : null}
             <label className="block">
-              <span className="mb-1 block text-sm font-medium">Course</span>
+              <span className="mb-1 block text-sm font-medium">course</span>
               <input
                 value={course}
                 onChange={(e) => setCourse(e.target.value)}
@@ -285,11 +324,12 @@ export function CheckInPanels({
               </datalist>
             </label>
             <label className="block">
-              <span className="mb-1 block text-sm font-medium">Notes</span>
-              <input
+              <span className="mb-1 block text-sm font-medium">notes</span>
+              <textarea
                 value={studentNotes}
                 onChange={(e) => setStudentNotes(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-3 py-3 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                rows={3}
+                className="w-full resize-y rounded-xl border border-slate-300 px-3 py-3 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
               />
             </label>
             <button

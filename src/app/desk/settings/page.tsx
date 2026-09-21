@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { getBeirutParts, TIMEZONE } from "@/lib/schedule";
+import { ImportExcelHistoryButton } from "./import-excel-button";
 
 export default async function SettingsPage() {
   const session = await getSession();
@@ -61,6 +62,10 @@ export default async function SettingsPage() {
           </dd>
         </div>
       </dl>
+
+      <div className="mt-8">
+        <ImportExcelHistoryButton />
+      </div>
 
       <div className="mt-8 flex flex-wrap gap-3">
         <Link
