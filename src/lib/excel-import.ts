@@ -4,6 +4,10 @@ import path from "node:path";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { canonicalTutorName, normalizeTutorKey } from "@/lib/tutor-aliases";
 import { hoursBetween, minutesBetween } from "@/lib/schedule";
+import {
+  applyPmHeuristic,
+  normalizeScheduledShift,
+} from "@/lib/shift-time";
 
 const BEIRUT_OFFSET = "+03:00";
 
@@ -73,10 +77,7 @@ function excelClockParts(
  * Tutoring is afternoon. Excel often stores 1:00 PM as hour=1.
  * If hour < 7, treat as PM (hour + 12).
  */
-export function applyPmHeuristic(hour: number): number {
-  if (hour >= 0 && hour < 7) return hour + 12;
-  return hour;
-}
+export { applyPmHeuristic } from "@/lib/shift-time";
 
 export function beirutIsoFromDateAndTime(
   dateStr: string,
@@ -212,10 +213,17 @@ export function parseAttendanceWorkbook(wb: ExcelJS.Workbook): {
         adjustedOut = `${date}T${hh}:${mm}:00${BEIRUT_OFFSET}`;
       }
     }
+    const shiftRaw = cellText(row.getCell(3).value);
+    const normalized = normalizeScheduledShift(shiftRaw);
+    if (shiftRaw && !normalized) {
+      warnings.push(
+        `Tutors row ${n}: could not parse scheduled shift "${shiftRaw}"`,
+      );
+    }
     tutors.push({
       date,
       name: canonicalTutorName(nameRaw),
-      scheduledShift: cellText(row.getCell(3).value),
+      scheduledShift: normalized?.canonical ?? shiftRaw,
       role: cellText(row.getCell(4).value) || "Tutor",
       timeIn,
       timeOut: adjustedOut,
@@ -378,20 +386,27 @@ export async function importAttendanceFromBuffer(
   ).sort();
 
   const existingAttKeys = new Set<string>();
+  const existingAttByKey = new Map<
+    string,
+    { id: string; scheduled_shift: string | null }
+  >();
   if (dates.length > 0) {
     const { data: existingAtt } = await supabase
       .from("tutor_attendance")
-      .select("attendance_date, tutor_id, time_in")
+      .select("id, attendance_date, tutor_id, time_in, scheduled_shift")
       .gte("attendance_date", dates[0])
       .lte("attendance_date", dates[dates.length - 1]);
     for (const row of existingAtt ?? []) {
-      existingAttKeys.add(
-        attendanceDedupKey(
-          row.attendance_date,
-          row.tutor_id,
-          row.time_in,
-        ),
+      const key = attendanceDedupKey(
+        row.attendance_date,
+        row.tutor_id,
+        row.time_in,
       );
+      existingAttKeys.add(key);
+      existingAttByKey.set(key, {
+        id: row.id,
+        scheduled_shift: row.scheduled_shift,
+      });
     }
   }
 
@@ -427,6 +442,24 @@ export async function importAttendanceFromBuffer(
     );
     const key = attendanceDedupKey(row.date, tutorId, row.timeIn);
     if (existingAttKeys.has(key)) {
+      const existing = existingAttByKey.get(key);
+      if (
+        existing &&
+        row.scheduledShift &&
+        existing.scheduled_shift !== row.scheduledShift
+      ) {
+        const { error: updErr } = await supabase
+          .from("tutor_attendance")
+          .update({ scheduled_shift: row.scheduledShift })
+          .eq("id", existing.id);
+        if (updErr) {
+          summary.warnings.push(
+            `Shift normalize failed ${row.date} ${row.name}: ${updErr.message}`,
+          );
+        } else {
+          existing.scheduled_shift = row.scheduledShift;
+        }
+      }
       summary.attendanceSkipped += 1;
       continue;
     }

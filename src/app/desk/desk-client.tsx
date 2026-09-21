@@ -8,8 +8,9 @@ import {
   getMergedShiftsForDay,
 } from "@/lib/schedule";
 import { CheckInPanels } from "./check-in-panels";
+import { DayCalendar } from "./day-calendar";
 import type { DeskClientProps } from "./desk-types";
-import { DayScheduleList, DueNowBoard, LaterToday } from "./due-now-board";
+import { DueNowBoard } from "./due-now-board";
 import { HereNowBoard } from "./here-now-board";
 import { OpsBar } from "./ops-bar";
 import { useDeskLive } from "./use-desk-live";
@@ -33,7 +34,6 @@ export function DeskClient({
   });
 
   const [searchSeed, setSearchSeed] = useState("");
-  const [laterOpenDone, setLaterOpenDone] = useState(false);
 
   const nameToTutor = useMemo(() => {
     const map = new Map<string, TutorRow>();
@@ -50,11 +50,7 @@ export function DeskClient({
   const boards = useMemo(() => {
     const shifts = getMergedShiftsForDay(slots);
     if (!isToday) {
-      const later = shifts.map((s) => ({
-        ...s,
-        status: "upcoming" as const,
-      }));
-      return { dueNow: [], later, done: [] };
+      return { dueNow: [], later: [], done: [] };
     }
     return bucketShiftsForDesk(
       shifts,
@@ -74,17 +70,8 @@ export function DeskClient({
 
   const dayShifts = useMemo(() => getMergedShiftsForDay(slots), [slots]);
 
-  const closedTutorIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const a of live.attendance) {
-      if (a.time_out) ids.add(a.tutor_id);
-    }
-    return ids;
-  }, [live.attendance]);
-
   useEffect(() => {
     setSearchSeed("");
-    setLaterOpenDone(false);
   }, [date, dayKey]);
 
   useEffect(() => {
@@ -159,20 +146,21 @@ export function DeskClient({
       )}
 
       <div className="relative flex-1 overflow-y-auto px-4 py-5 lg:px-6">
-        <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-2 lg:gap-10">
-          <HereNowBoard
-            openTutors={live.openTutors}
-            visitsByTutorId={live.visitsByTutorId}
-            highlightId={live.highlightId}
-            isToday={isToday}
-            isPending={live.isPending}
-            onCheckOut={(id) => live.checkOutTutor(id)}
-            onAddStudent={(tutorId) => live.openStudentPanel(tutorId)}
-            onCheckOutStudent={live.checkOutStudent}
-            onUpdateTutorMeta={live.updateTutorMeta}
-          />
+        <div className="mx-auto flex max-w-7xl flex-col gap-8">
+          <div className="grid gap-8 lg:grid-cols-2 lg:gap-10">
+            <HereNowBoard
+              openTutors={live.openTutors}
+              visitsByTutorId={live.visitsByTutorId}
+              highlightId={live.highlightId}
+              commentFocusId={live.commentFocusId}
+              isToday={isToday}
+              isPending={live.isPending}
+              onCheckOut={(id) => live.checkOutTutor(id)}
+              onAddStudent={(tutorId) => live.openStudentPanel(tutorId)}
+              onCheckOutStudent={live.checkOutStudent}
+              onUpdateTutorMeta={live.updateTutorMeta}
+            />
 
-          <div className="space-y-6">
             <DueNowBoard
               rows={boards.dueNow}
               nameToTutor={nameToTutor}
@@ -180,58 +168,17 @@ export function DeskClient({
               isPending={live.isPending}
               onCheckIn={(t, shift) => live.checkInTutor(t, shift)}
             />
-
-            <LaterToday
-              rows={boards.later}
-              nameToTutor={nameToTutor}
-              isToday={isToday}
-              isPending={live.isPending}
-              onCheckIn={(t, shift) => live.checkInTutor(t, shift)}
-            />
-
-            {boards.done.length > 0 ? (
-              <details
-                className="rounded-2xl border border-slate-200 bg-white"
-                open={laterOpenDone}
-                onToggle={(e) =>
-                  setLaterOpenDone((e.target as HTMLDetailsElement).open)
-                }
-              >
-                <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold text-slate-600 [&::-webkit-details-marker]:hidden">
-                  Done today
-                  <span className="tabular-nums font-normal text-slate-400">
-                    {boards.done.length}
-                  </span>
-                </summary>
-                <ul className="divide-y divide-slate-100 border-t border-slate-100">
-                  {boards.done.map((row) => (
-                    <li
-                      key={`${row.name}-${row.shiftLabel}`}
-                      className="px-4 py-2.5 text-sm text-slate-500"
-                    >
-                      <span className="font-medium text-slate-700">
-                        {row.name}
-                      </span>
-                      <span className="text-slate-400">
-                        {" "}
-                        · {row.shiftLabel}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            ) : null}
-
-            <DayScheduleList
-              shifts={dayShifts}
-              nameToTutor={nameToTutor}
-              checkedInIds={live.checkedInIds}
-              closedTutorIds={closedTutorIds}
-              isToday={isToday}
-              isPending={live.isPending}
-              onCheckIn={(t, shift) => live.checkInTutor(t, shift)}
-            />
           </div>
+
+          <DayCalendar
+            shifts={dayShifts}
+            attendance={live.attendance}
+            nameToTutor={nameToTutor}
+            checkedInIds={live.checkedInIds}
+            isToday={isToday}
+            isPending={live.isPending}
+            onCheckIn={(t, shift) => live.checkInTutor(t, shift)}
+          />
         </div>
       </div>
 

@@ -54,6 +54,7 @@ export function useDeskLive({
   const [pendingKeys, setPendingKeys] = useState<Set<string>>(new Set());
   const [panel, setPanel] = useState<DeskPanel>("none");
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [commentFocusId, setCommentFocusId] = useState<string | null>(null);
   const [defaultTutorId, setDefaultTutorId] = useState("");
   const [nowMin, setNowMin] = useState(() =>
     beirutMinutes(new Date().toISOString()),
@@ -232,6 +233,12 @@ export function useDeskLive({
         return next;
       });
       setHighlightId(row.id);
+      // Prompt for comment after fast check-in paths (notes empty)
+      if (!(opts?.notes ?? "").trim()) {
+        setCommentFocusId(row.id);
+      } else {
+        setCommentFocusId(null);
+      }
       flash(`${tutor.name} checked in`);
       setPanel("none");
       window.setTimeout(() => setHighlightId(null), 4000);
@@ -260,6 +267,7 @@ export function useDeskLive({
         return next;
       });
       flash("Saved");
+      setCommentFocusId(null);
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : "Update failed");
     } finally {
@@ -362,6 +370,7 @@ export function useDeskLive({
     panel,
     setPanel,
     highlightId,
+    commentFocusId,
     defaultTutorId,
     checkedInIds,
     openTutors,
