@@ -42,6 +42,32 @@ const BLUE_SEP: ExcelJS.Fill = {
   fgColor: { argb: "FF0070C0" },
 };
 
+const TUTOR_HEADERS = [
+  "date",
+  "tutor name",
+  "scheduled shift",
+  "Team Options2",
+  "actual time in",
+  "actual time out",
+  "total hrs",
+  "Notes",
+] as const;
+
+const TUTOREE_HEADERS = [
+  "date",
+  "std name",
+  "std email",
+  "time in",
+  "time out",
+  "duration",
+  "course",
+  "tutor who helped",
+  "notes",
+] as const;
+
+const TUTOR_WIDTHS = [21, 25.14, 22.14, 16.86, 25.57, 17.43, 15, 33.43];
+const TUTOREE_WIDTHS = [24, 15, 21, 22, 21, 10, 22, 28, 34];
+
 async function loadTemplateWorkbook(): Promise<ExcelJS.Workbook> {
   const file = path.join(
     process.cwd(),
@@ -51,19 +77,11 @@ async function loadTemplateWorkbook(): Promise<ExcelJS.Workbook> {
   );
   const buf = await fs.readFile(file);
   const wb = new ExcelJS.Workbook();
-  await wb.xlsx.load(Uint8Array.from(buf).buffer);
+  await wb.xlsx.load(buf as unknown as ExcelJS.Buffer);
   return wb;
 }
 
-function clearDataRows(ws: ExcelJS.Worksheet, headerRows = 1) {
-  const last = ws.rowCount;
-  if (last > headerRows) {
-    ws.spliceRows(headerRows + 1, last - headerRows);
-  }
-}
-
 function fillScheduleSheet(ws: ExcelJS.Worksheet) {
-  // Keep title + header styled; rewrite body values from schedule.json
   const title =
     schedule.title || "ETC General Tutoring Schedule (All Courses)";
   ws.getCell(1, 1).value = title;
@@ -75,7 +93,6 @@ function fillScheduleSheet(ws: ExcelJS.Worksheet) {
   }
   const slots = Array.from(allSlots).sort();
 
-  // Template has rows 3..6 for four slots — write into those (or extend)
   for (let i = 0; i < slots.length; i++) {
     const rowIdx = 3 + i;
     const slot = slots[i];
@@ -93,6 +110,48 @@ function fillScheduleSheet(ws: ExcelJS.Worksheet) {
     }
     row.commit();
   }
+}
+
+/**
+ * Drop and recreate a data sheet. ExcelJS spliceRows leaves stale rows/tables
+ * that produce files Excel cannot open.
+ */
+function replaceSheet(
+  wb: ExcelJS.Workbook,
+  name: string,
+  widths: number[],
+): ExcelJS.Worksheet {
+  const existing = wb.getWorksheet(name);
+  if (existing) {
+    try {
+      const tables =
+        (existing as unknown as { tables?: Record<string, unknown> }).tables ??
+        {};
+      for (const key of Object.keys(tables)) {
+        existing.removeTable(key);
+      }
+    } catch {
+      /* ignore */
+    }
+    wb.removeWorksheet(existing.id);
+  }
+  const ws = wb.addWorksheet(name);
+  widths.forEach((w, i) => {
+    ws.getColumn(i + 1).width = w;
+  });
+  return ws;
+}
+
+function tutorNameFromJoin(
+  tutors:
+    | { name?: string }
+    | { name?: string }[]
+    | null
+    | undefined,
+): string {
+  if (!tutors) return "";
+  if (Array.isArray(tutors)) return tutors[0]?.name ?? "";
+  return tutors.name ?? "";
 }
 
 export async function buildAttendanceWorkbook(from: string, to: string) {
@@ -130,168 +189,96 @@ export async function buildAttendanceWorkbook(from: string, to: string) {
   const sched = wb.getWorksheet("General schedule");
   if (sched) fillScheduleSheet(sched);
 
-  const tutorsSheet = wb.getWorksheet("Tutors");
-  if (tutorsSheet) {
-    try {
-      tutorsSheet.removeTable("Table3");
-    } catch {
-      /* table may be absent after load quirks */
-    }
-    clearDataRows(tutorsSheet, 1);
+  // --- Tutors ---
+  const tutorsSheet = replaceSheet(wb, "Tutors", TUTOR_WIDTHS);
+  const headerTutor = tutorsSheet.getRow(1);
+  headerTutor.values = [undefined, ...TUTOR_HEADERS];
+  headerTutor.font = { name: "Calibri", size: 11 };
+  headerTutor.commit();
 
-    let lastDate = "";
-    let excelRowIdx = 1;
-    for (const row of attendance ?? []) {
-      const joined = row.tutors as
-        | { name?: string }
-        | { name?: string }[]
-        | null;
-      const tutorName = Array.isArray(joined)
-        ? (joined[0]?.name ?? "")
-        : (joined?.name ?? "");
+  let lastDate = "";
+  let excelRowIdx = 1;
 
-      if (lastDate && lastDate !== row.attendance_date) {
-        excelRowIdx += 1;
-        const sep = tutorsSheet.getRow(excelRowIdx);
-        for (let c = 1; c <= 8; c++) {
-          sep.getCell(c).value = null;
-          sep.getCell(c).fill = BLUE_SEP;
-        }
-        sep.commit();
-      }
-      lastDate = row.attendance_date;
+  for (const row of attendance ?? []) {
+    const name = tutorNameFromJoin(
+      row.tutors as { name?: string } | { name?: string }[] | null,
+    );
 
+    if (lastDate && lastDate !== row.attendance_date) {
       excelRowIdx += 1;
-      const excelRow = tutorsSheet.getRow(excelRowIdx);
-      excelRow.values = [
-        ,
-        excelDate(row.attendance_date),
-        tutorName,
-        row.scheduled_shift ?? "",
-        row.role ?? "Tutor",
-        excelTimeFromIso(row.time_in),
-        excelTimeFromIso(row.time_out),
-        row.total_hours ?? "",
-        row.notes ?? "",
-      ];
-      excelRow.font = { name: "Calibri", size: 11 };
-      excelRow.getCell(1).numFmt = "mm-dd-yy";
-      excelRow.getCell(5).numFmt = "h:mm";
-      excelRow.getCell(6).numFmt = "h:mm";
-      if (typeof row.total_hours === "number") {
-        excelRow.getCell(7).numFmt = "0.##";
+      const sep = tutorsSheet.getRow(excelRowIdx);
+      for (let c = 1; c <= 8; c++) {
+        sep.getCell(c).value = null;
+        sep.getCell(c).fill = BLUE_SEP;
       }
-      excelRow.commit();
+      sep.font = { name: "Calibri", size: 11 };
+      sep.commit();
     }
+    lastDate = row.attendance_date;
 
-    const lastData = Math.max(excelRowIdx, 1);
-    if (lastData > 1) {
-      // ExcelJS TableProperties requires `rows`; data already written to sheet.
-      (
-        tutorsSheet as ExcelJS.Worksheet & {
-          addTable: (t: Record<string, unknown>) => void;
-        }
-      ).addTable({
-        name: "Table3",
-        ref: `A1:H${lastData}`,
-        headerRow: true,
-        style: {
-          theme: "TableStyleMedium2",
-          showRowStripes: false,
-        },
-        columns: [
-          { name: "date" },
-          { name: "tutor name" },
-          { name: "scheduled shift" },
-          { name: "Team Options2" },
-          { name: "actual time in" },
-          { name: "actual time out" },
-          { name: "total hrs" },
-          { name: "Notes" },
-        ],
-        rows: [],
-      });
+    excelRowIdx += 1;
+    const excelRow = tutorsSheet.getRow(excelRowIdx);
+    excelRow.values = [
+      undefined,
+      excelDate(row.attendance_date),
+      name,
+      row.scheduled_shift ?? "",
+      row.role ?? "Tutor",
+      excelTimeFromIso(row.time_in),
+      excelTimeFromIso(row.time_out),
+      row.total_hours ?? "",
+      row.notes ?? "",
+    ];
+    excelRow.font = { name: "Calibri", size: 11 };
+    excelRow.getCell(1).numFmt = "mm-dd-yy";
+    excelRow.getCell(5).numFmt = "h:mm";
+    excelRow.getCell(6).numFmt = "h:mm";
+    if (typeof row.total_hours === "number") {
+      excelRow.getCell(7).numFmt = "0.##";
     }
+    excelRow.commit();
   }
 
-  const tutoree = wb.getWorksheet("Tutoree");
-  if (tutoree) {
-    try {
-      tutoree.removeTable("Table2");
-    } catch {
-      /* ok */
-    }
-    clearDataRows(tutoree, 1);
+  // --- Tutoree ---
+  const tutoree = replaceSheet(wb, "Tutoree", TUTOREE_WIDTHS);
+  const headerVisit = tutoree.getRow(1);
+  headerVisit.values = [undefined, ...TUTOREE_HEADERS];
+  headerVisit.font = { name: "Calibri", size: 11 };
+  headerVisit.commit();
 
-    let r = 1;
-    for (const row of visits ?? []) {
-      const joined = row.tutors as
-        | { name?: string }
-        | { name?: string }[]
-        | null;
-      const helper = Array.isArray(joined)
-        ? (joined[0]?.name ?? "")
-        : (joined?.name ?? "");
-      r += 1;
-      const excelRow = tutoree.getRow(r);
-      const email = (row.student_email ?? "").trim();
-      excelRow.values = [
-        ,
-        excelDate(row.visit_date),
-        row.student_name,
-        email
-          ? { text: email, hyperlink: `mailto:${email}` }
-          : "",
-        excelTimeFromIso(row.time_in),
-        excelTimeFromIso(row.time_out),
-        templateDuration(row.duration_minutes),
-        row.course ?? "",
-        helper,
-        row.notes ?? "",
-      ];
-      excelRow.font = { name: "Calibri", size: 11 };
-      excelRow.getCell(1).numFmt = "mm-dd-yy";
-      excelRow.getCell(4).numFmt = "h:mm";
-      excelRow.getCell(5).numFmt = "h:mm";
-      if (email) {
-        excelRow.getCell(3).font = {
-          name: "Calibri",
-          size: 11,
-          underline: true,
-          color: { theme: 10 },
-        };
-      }
-      excelRow.commit();
+  let r = 1;
+  for (const row of visits ?? []) {
+    const helper = tutorNameFromJoin(
+      row.tutors as { name?: string } | { name?: string }[] | null,
+    );
+    r += 1;
+    const email = (row.student_email ?? "").trim();
+    const excelRow = tutoree.getRow(r);
+    excelRow.values = [
+      undefined,
+      excelDate(row.visit_date),
+      row.student_name,
+      email ? { text: email, hyperlink: `mailto:${email}` } : "",
+      excelTimeFromIso(row.time_in),
+      excelTimeFromIso(row.time_out),
+      templateDuration(row.duration_minutes),
+      row.course ?? "",
+      helper,
+      row.notes ?? "",
+    ];
+    excelRow.font = { name: "Calibri", size: 11 };
+    excelRow.getCell(1).numFmt = "mm-dd-yy";
+    excelRow.getCell(4).numFmt = "h:mm";
+    excelRow.getCell(5).numFmt = "h:mm";
+    if (email) {
+      excelRow.getCell(3).font = {
+        name: "Calibri",
+        size: 11,
+        underline: true,
+        color: { theme: 10 },
+      };
     }
-
-    const lastData = Math.max(r, 1);
-    if (lastData > 1) {
-      (
-        tutoree as ExcelJS.Worksheet & {
-          addTable: (t: Record<string, unknown>) => void;
-        }
-      ).addTable({
-        name: "Table2",
-        ref: `A1:I${lastData}`,
-        headerRow: true,
-        style: {
-          theme: "TableStyleMedium2",
-          showRowStripes: false,
-        },
-        columns: [
-          { name: "date" },
-          { name: "std name" },
-          { name: "std email" },
-          { name: "time in" },
-          { name: "time out" },
-          { name: "duration" },
-          { name: "course" },
-          { name: "tutor who helped" },
-          { name: "notes" },
-        ],
-        rows: [],
-      });
-    }
+    excelRow.commit();
   }
 
   const buffer = await wb.xlsx.writeBuffer();
