@@ -275,6 +275,36 @@ export function useDeskLive({
     }
   }
 
+  async function setTutorTimes(payload: {
+    id: string;
+    timeIn: string;
+    timeOut: string | null;
+    scheduledShift?: string;
+  }) {
+    const key = `times:${payload.id}`;
+    setPending(key, true);
+    try {
+      const { row: updated } = await api("/api/attendance/tutors", {
+        action: "set_times",
+        id: payload.id,
+        timeIn: payload.timeIn,
+        timeOut: payload.timeOut,
+        scheduledShift: payload.scheduledShift,
+      });
+      setAttendance((prev) => {
+        const next = prev.map((r) => (r.id === payload.id ? updated : r));
+        attFp.current = attendanceFingerprint(next);
+        return next;
+      });
+      flash("Times updated");
+    } catch (e) {
+      setErrorMsg(e instanceof Error ? e.message : "Could not update times");
+      throw e;
+    } finally {
+      setPending(key, false);
+    }
+  }
+
   async function checkOutTutor(id: string, opts?: { force?: boolean }) {
     const open = visits.filter((v) => !v.time_out && v.tutor_id);
     const row = attendance.find((a) => a.id === id);
@@ -385,6 +415,7 @@ export function useDeskLive({
     checkInTutor,
     checkOutTutor,
     updateTutorMeta,
+    setTutorTimes,
     addStudent,
     checkOutStudent,
   };

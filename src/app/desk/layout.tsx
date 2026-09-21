@@ -61,6 +61,9 @@ export default async function DeskLayout({
         </div>
       </header>
       <div className="flex min-h-0 flex-1">{children}</div>
+      <p className="border-t border-slate-200/80 bg-white px-4 py-2 text-center text-[11px] text-slate-400 lg:px-6">
+        By Julian Ibrahim
+      </p>
     </div>
   );
 }

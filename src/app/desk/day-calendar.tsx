@@ -37,6 +37,7 @@ type Props = {
   onCheckIn?: (tutor: TutorRow, scheduledShift: string) => void;
   /** Admin / read-only: hide check-in controls */
   readOnly?: boolean;
+  onEditAttendance?: (attendanceId: string) => void;
 };
 
 const LANE_MIN_PX = 300;
@@ -103,6 +104,7 @@ export function DayCalendar({
   isPending = () => false,
   onCheckIn,
   readOnly = false,
+  onEditAttendance,
 }: Props) {
   const rangeStart = TIMELINE_START_MIN;
   const rangeEnd = TIMELINE_END_MIN;
@@ -328,6 +330,11 @@ export function DayCalendar({
                   className={`absolute overflow-hidden rounded-xl border px-3 py-2 shadow-sm ${tone}`}
                   style={{ top, height, left: leftPx, width: widthPx }}
                   title={`${b.name} · ${formatShiftRange(b.shiftLabel)}`}
+                  onContextMenu={(e) => {
+                    if (!onEditAttendance || !b.attendanceId) return;
+                    e.preventDefault();
+                    onEditAttendance(b.attendanceId);
+                  }}
                 >
                   <div className="flex h-full min-h-0 flex-col gap-1">
                     <div className="flex min-w-0 items-start justify-between gap-2">

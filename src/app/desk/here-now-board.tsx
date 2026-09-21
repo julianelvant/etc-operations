@@ -25,6 +25,7 @@ type Props = {
     id: string,
     patch: { notes?: string; role?: string },
   ) => void;
+  onEditTimes?: (row: TutorAttendanceRow) => void;
 };
 
 export function HereNowBoard({
@@ -39,6 +40,7 @@ export function HereNowBoard({
   onAddStudent,
   onCheckOutStudent,
   onUpdateTutorMeta,
+  onEditTimes,
 }: Props) {
   const hereIds = useMemo(
     () => new Set(openTutors.map((r) => r.tutor_id)),
@@ -46,8 +48,8 @@ export function HereNowBoard({
   );
 
   return (
-    <div className="space-y-10">
-      <section className="space-y-4" aria-labelledby="here-now-heading">
+    <div className="space-y-4">
+      <section className="space-y-3" aria-labelledby="here-now-heading">
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">
@@ -94,6 +96,7 @@ export function HereNowBoard({
                 onAddStudent={onAddStudent}
                 onCheckOutStudent={onCheckOutStudent}
                 onUpdateTutorMeta={onUpdateTutorMeta}
+                onEditTimes={onEditTimes}
               />
             ))}
           </ul>
@@ -117,6 +120,7 @@ function HereNowCard({
   onAddStudent,
   onCheckOutStudent,
   onUpdateTutorMeta,
+  onEditTimes,
 }: {
   row: TutorAttendanceRow;
   openStudents: StudentVisitRow[];
@@ -132,16 +136,15 @@ function HereNowCard({
     id: string,
     patch: { notes?: string; role?: string },
   ) => void;
+  onEditTimes?: (row: TutorAttendanceRow) => void;
 }) {
   const [open, setOpen] = useState(forceOpen);
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const outPending = isPending(`out:${row.id}`);
   const shiftDisplay = row.scheduled_shift
     ? slotLabel(row.scheduled_shift.split(",")[0].trim())
     : null;
-  const meta = [
-    `In since ${formatClock(row.time_in)}`,
-    shiftDisplay,
-  ]
+  const meta = [`In since ${formatClock(row.time_in)}`, shiftDisplay]
     .filter(Boolean)
     .join(" · ");
 
@@ -149,13 +152,25 @@ function HereNowCard({
     if (forceOpen) setOpen(true);
   }, [forceOpen]);
 
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [menu]);
+
   const panelId = `here-panel-${row.id}`;
 
   return (
     <li
-      className={`rounded-2xl bg-emerald-700 text-white shadow-sm transition ${
+      className={`relative rounded-2xl bg-emerald-700 text-white shadow-sm transition ${
         hot ? "ring-2 ring-emerald-300 ring-offset-2" : ""
       }`}
+      onContextMenu={(e) => {
+        if (!onEditTimes) return;
+        e.preventDefault();
+        setMenu({ x: e.clientX, y: e.clientY });
+      }}
     >
       <div className="flex items-stretch gap-1 p-2 sm:p-2.5">
         <button
@@ -200,7 +215,10 @@ function HereNowCard({
       </div>
 
       {open ? (
-        <div id={panelId} className="space-y-4 border-t border-white/15 px-4 pb-4 pt-3">
+        <div
+          id={panelId}
+          className="space-y-4 border-t border-white/15 px-4 pb-4 pt-3"
+        >
           {isToday ? (
             <TutorMetaEditor
               row={row}
@@ -246,15 +264,45 @@ function HereNowCard({
             )}
           </div>
 
-          {isToday ? (
-            <button
-              type="button"
-              onClick={() => onAddStudent(row.tutor_id)}
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-white/25 text-sm font-semibold text-emerald-50 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-            >
-              + Add student
-            </button>
-          ) : null}
+          <div className="flex flex-col gap-2 sm:flex-row">
+            {onEditTimes ? (
+              <button
+                type="button"
+                onClick={() => onEditTimes(row)}
+                className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg border border-white/25 text-sm font-semibold text-emerald-50 hover:bg-white/10"
+              >
+                Edit times
+              </button>
+            ) : null}
+            {isToday ? (
+              <button
+                type="button"
+                onClick={() => onAddStudent(row.tutor_id)}
+                className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg border border-white/25 text-sm font-semibold text-emerald-50 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                + Add student
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {menu && onEditTimes ? (
+        <div
+          className="fixed z-50 min-w-[10rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-slate-900 shadow-lg"
+          style={{ left: menu.x, top: menu.y }}
+          role="menu"
+        >
+          <button
+            type="button"
+            className="block w-full px-3 py-2 text-left text-sm font-medium hover:bg-emerald-50"
+            onClick={() => {
+              setMenu(null);
+              onEditTimes(row);
+            }}
+          >
+            Edit times…
+          </button>
         </div>
       ) : null}
     </li>
@@ -291,106 +339,86 @@ function OfferedCourses({
       .sort((a, b) => a.course.localeCompare(b.course));
   }, [tutors, hereIds]);
 
+  const active = byCourse.find((c) => c.course === openCourse) ?? null;
+
   return (
-    <section className="space-y-4" aria-labelledby="offered-courses-heading">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Directory
-          </p>
-          <h2
-            id="offered-courses-heading"
-            className="font-display text-2xl font-semibold text-slate-900"
-          >
-            Offered courses
-          </h2>
-        </div>
-        <p className="text-sm tabular-nums text-slate-500">
-          {byCourse.length} course{byCourse.length === 1 ? "" : "s"}
-        </p>
+    <section className="space-y-2" aria-labelledby="offered-courses-heading">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2
+          id="offered-courses-heading"
+          className="text-sm font-semibold text-slate-700"
+        >
+          Offered courses
+          <span className="ml-2 font-normal tabular-nums text-slate-400">
+            {byCourse.length}
+          </span>
+        </h2>
       </div>
 
       {byCourse.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 px-5 py-8 text-center text-sm text-slate-500">
-          No courses on tutor records yet.
-        </div>
+        <p className="text-xs text-slate-500">No courses yet.</p>
       ) : (
-        <ul className="overflow-hidden rounded-2xl border border-slate-200 bg-white divide-y divide-slate-100">
-          {byCourse.map(({ course, tutors: courseTutors, hereCount }) => {
-            const expanded = openCourse === course;
-            const panelId = `course-panel-${course.replace(/\s+/g, "-")}`;
+        <div className="flex flex-wrap gap-1.5">
+          {byCourse.map(({ course, hereCount }) => {
+            const selected = openCourse === course;
             return (
-              <li key={course}>
-                <button
-                  type="button"
-                  aria-expanded={expanded}
-                  aria-controls={panelId}
-                  onClick={() =>
-                    setOpenCourse((c) => (c === course ? null : course))
-                  }
-                  className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-emerald-600"
-                >
+              <button
+                key={course}
+                type="button"
+                aria-expanded={selected}
+                onClick={() =>
+                  setOpenCourse((c) => (c === course ? null : course))
+                }
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition ${
+                  selected
+                    ? "border-emerald-600 bg-emerald-600 text-white"
+                    : hereCount > 0
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-900 hover:border-emerald-400"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                }`}
+              >
+                <span className="max-w-[9rem] truncate">{course}</span>
+                {hereCount > 0 ? (
                   <span
-                    className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-600 transition ${
-                      expanded ? "rotate-90 bg-emerald-50 text-emerald-800" : ""
+                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
+                      selected
+                        ? "bg-white/20 text-white"
+                        : "bg-emerald-600 text-white"
                     }`}
-                    aria-hidden
                   >
-                    ▸
+                    {hereCount}
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-semibold text-slate-900">
-                      {course}
-                    </span>
-                    <span className="mt-0.5 block text-sm text-slate-500">
-                      {courseTutors.length} tutor
-                      {courseTutors.length === 1 ? "" : "s"}
-                    </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {active ? (
+        <ul className="flex flex-wrap gap-1.5 rounded-xl border border-slate-200 bg-white p-2">
+          {active.tutors.map((t) => {
+            const here = hereIds.has(t.id);
+            return (
+              <li
+                key={t.id}
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                  here
+                    ? "bg-emerald-600 text-white"
+                    : "bg-slate-100 text-slate-600"
+                }`}
+              >
+                <span className="max-w-[10rem] truncate">{t.name}</span>
+                {here ? (
+                  <span className="text-[10px] font-bold uppercase opacity-90">
+                    Here
                   </span>
-                  {hereCount > 0 ? (
-                    <span className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-900">
-                      {hereCount} here
-                    </span>
-                  ) : null}
-                </button>
-                {expanded ? (
-                  <ul
-                    id={panelId}
-                    className="space-y-1.5 bg-slate-50/80 px-4 pb-4 pt-1"
-                  >
-                    {courseTutors.map((t) => {
-                      const here = hereIds.has(t.id);
-                      return (
-                        <li
-                          key={t.id}
-                          className={`flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
-                            here
-                              ? "bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-500/40"
-                              : "bg-white text-slate-700 ring-1 ring-slate-200/80"
-                          }`}
-                        >
-                          <span className="min-w-0 truncate font-medium">
-                            {t.name}
-                          </span>
-                          {here ? (
-                            <span className="shrink-0 rounded-md bg-white/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
-                              Here
-                            </span>
-                          ) : (
-                            <span className="shrink-0 text-xs text-slate-400">
-                              Away
-                            </span>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
                 ) : null}
               </li>
             );
           })}
         </ul>
-      )}
+      ) : null}
     </section>
   );
 }
