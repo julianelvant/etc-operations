@@ -31,14 +31,26 @@ export default async function AdminLayout({
           </div>
           <div className="flex items-center gap-3">
             <Link
-              href="/desk"
+              href="/admin"
               className="hidden rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 sm:inline"
+            >
+              Overview
+            </Link>
+            <Link
+              href="/admin/accounts"
+              className="hidden rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 sm:inline"
+            >
+              Accounts
+            </Link>
+            <Link
+              href="/desk"
+              className="hidden rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 md:inline"
             >
               Open desk
             </Link>
             <Link
               href="/desk/export"
-              className="hidden rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 md:inline"
+              className="hidden rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 lg:inline"
             >
               Export
             </Link>

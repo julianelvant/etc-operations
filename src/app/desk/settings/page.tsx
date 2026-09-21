@@ -16,8 +16,8 @@ export default async function SettingsPage() {
         Settings
       </h1>
       <p className="mt-2 text-slate-600">
-        Desk configuration for ETC attendance. Password changes happen in
-        Vercel env vars.
+        Desk configuration for ETC attendance. Logins are managed by an admin
+        under Accounts.
       </p>
 
       <dl className="mt-8 divide-y divide-slate-200 overflow-hidden rounded-3xl border border-slate-200 bg-white">
@@ -50,15 +50,14 @@ export default async function SettingsPage() {
         <div className="grid gap-1 px-5 py-4 sm:grid-cols-3 sm:gap-4">
           <dt className="text-sm font-medium text-slate-500">Password</dt>
           <dd className="sm:col-span-2 text-sm text-slate-900">
-            Set via Vercel env{" "}
-            <code className="rounded bg-slate-100 px-1 text-xs">
-              ATTENDANCE_PASSWORD
-            </code>{" "}
-            (and username via{" "}
-            <code className="rounded bg-slate-100 px-1 text-xs">
-              ATTENDANCE_USERNAME
-            </code>
-            ).
+            Ask an admin to change your password in{" "}
+            <Link
+              href="/admin/accounts"
+              className="font-semibold text-emerald-700 underline"
+            >
+              Admin → Accounts
+            </Link>
+            .
           </dd>
         </div>
       </dl>
