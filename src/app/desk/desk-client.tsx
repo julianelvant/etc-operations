@@ -157,6 +157,7 @@ export function DeskClient({
         <div className="flex w-full flex-col gap-10">
           <HereNowBoard
             openTutors={live.openTutors}
+            tutors={tutors}
             visitsByTutorId={live.visitsByTutorId}
             highlightId={live.highlightId}
             commentFocusId={live.commentFocusId}
