@@ -10,7 +10,7 @@ export default async function LoginPage({
   const next = params.next ?? "";
 
   return (
-    <div className="flex min-h-full flex-1 items-center justify-center bg-gradient-to-b from-slate-50 via-white to-emerald-50 px-6 py-16">
+    <div className="flex min-h-full flex-1 flex-col items-center justify-center bg-gradient-to-b from-slate-50 via-white to-emerald-50 px-6 py-16">
       <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white/90 p-8 shadow-xl shadow-emerald-100/40">
         <div className="mb-8">
           <p className="text-sm font-medium uppercase tracking-[0.2em] text-emerald-700">
@@ -26,6 +26,9 @@ export default async function LoginPage({
         </div>
         <LoginForm next={next} />
       </div>
+      <p className="mt-8 text-center text-[11px] text-slate-400">
+        By Julian Ibrahim
+      </p>
     </div>
   );
 }

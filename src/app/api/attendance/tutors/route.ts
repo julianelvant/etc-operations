@@ -178,5 +178,99 @@ export async function POST(request: Request) {
     return NextResponse.json({ row: data });
   }
 
+  if (action === "set_times") {
+    const id = String(body.id ?? "");
+    if (!id) {
+      return NextResponse.json({ error: "id required" }, { status: 400 });
+    }
+
+    const { data: existing, error: findError } = await supabase
+      .from("tutor_attendance")
+      .select("id, time_in, time_out")
+      .eq("id", id)
+      .single();
+    if (findError || !existing) {
+      return NextResponse.json({ error: "Record not found" }, { status: 404 });
+    }
+
+    const patch: {
+      time_in?: string;
+      time_out?: string | null;
+      total_hours?: number | null;
+      scheduled_shift?: string;
+      role?: string;
+      notes?: string;
+    } = {};
+
+    if (body.timeIn !== undefined) {
+      const tin = String(body.timeIn ?? "").trim();
+      if (!tin) {
+        return NextResponse.json(
+          { error: "timeIn is required" },
+          { status: 400 },
+        );
+      }
+      const parsed = new Date(tin);
+      if (Number.isNaN(parsed.getTime())) {
+        return NextResponse.json({ error: "Invalid timeIn" }, { status: 400 });
+      }
+      patch.time_in = parsed.toISOString();
+    }
+
+    if (body.timeOut !== undefined) {
+      if (body.timeOut === null || body.timeOut === "") {
+        patch.time_out = null;
+        patch.total_hours = null;
+      } else {
+        const parsed = new Date(String(body.timeOut));
+        if (Number.isNaN(parsed.getTime())) {
+          return NextResponse.json(
+            { error: "Invalid timeOut" },
+            { status: 400 },
+          );
+        }
+        patch.time_out = parsed.toISOString();
+      }
+    }
+
+    if (body.scheduledShift !== undefined) {
+      patch.scheduled_shift = String(body.scheduledShift);
+    }
+    if (body.role !== undefined) {
+      patch.role = String(body.role).trim() || "Tutor";
+    }
+    if (body.notes !== undefined) {
+      patch.notes = String(body.notes);
+    }
+
+    const nextIn = patch.time_in ?? existing.time_in;
+    const nextOut =
+      patch.time_out !== undefined ? patch.time_out : existing.time_out;
+    if (nextOut) {
+      if (new Date(nextOut).getTime() < new Date(nextIn).getTime()) {
+        return NextResponse.json(
+          { error: "Check-out must be after check-in" },
+          { status: 400 },
+        );
+      }
+      patch.total_hours = hoursBetween(nextIn, nextOut);
+    } else if (patch.time_out === null) {
+      patch.total_hours = null;
+    }
+
+    const { data, error } = await supabase
+      .from("tutor_attendance")
+      .update(patch)
+      .eq("id", id)
+      .select(
+        "id, attendance_date, tutor_id, scheduled_shift, role, time_in, time_out, total_hours, notes, tutors(id, name, courses)",
+      )
+      .single();
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ row: data });
+  }
+
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });
 }

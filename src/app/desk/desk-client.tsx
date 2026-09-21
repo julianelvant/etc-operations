@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import type { TutorRow } from "@/lib/attendance";
+import type { TutorAttendanceRow, TutorRow } from "@/lib/attendance";
 import {
   bucketShiftsForDesk,
   enrichShiftsWithAttendance,
@@ -12,6 +12,7 @@ import { CheckInPanels } from "./check-in-panels";
 import { DayCalendar } from "./day-calendar";
 import type { DeskClientProps } from "./desk-types";
 import { DueNowBoard } from "./due-now-board";
+import { EditTimesModal } from "./edit-times-modal";
 import { HereNowBoard } from "./here-now-board";
 import { OpsBar } from "./ops-bar";
 import { useDeskLive } from "./use-desk-live";
@@ -35,6 +36,7 @@ export function DeskClient({
   });
 
   const [searchSeed, setSearchSeed] = useState("");
+  const [editRow, setEditRow] = useState<TutorAttendanceRow | null>(null);
 
   const nameToTutor = useMemo(() => {
     const map = new Map<string, TutorRow>();
@@ -167,6 +169,7 @@ export function DeskClient({
             onAddStudent={(tutorId) => live.openStudentPanel(tutorId)}
             onCheckOutStudent={live.checkOutStudent}
             onUpdateTutorMeta={live.updateTutorMeta}
+            onEditTimes={(row) => setEditRow(row)}
           />
 
           <DueNowBoard
@@ -185,6 +188,10 @@ export function DeskClient({
             isToday={isToday}
             isPending={live.isPending}
             onCheckIn={(t, shift) => live.checkInTutor(t, shift)}
+            onEditAttendance={(id) => {
+              const row = live.attendance.find((a) => a.id === id);
+              if (row) setEditRow(row);
+            }}
           />
         </div>
       </div>
@@ -222,6 +229,16 @@ export function DeskClient({
           })
         }
         onAddStudent={live.addStudent}
+      />
+
+      <EditTimesModal
+        row={editRow}
+        pending={editRow ? live.isPending(`times:${editRow.id}`) : false}
+        onClose={() => setEditRow(null)}
+        onSave={async (patch) => {
+          await live.setTutorTimes(patch);
+          setEditRow(null);
+        }}
       />
     </div>
   );

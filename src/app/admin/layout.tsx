@@ -67,6 +67,9 @@ export default async function AdminLayout({
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-5 py-8 lg:px-8">{children}</main>
+      <p className="pb-6 text-center text-[11px] text-slate-400">
+        By Julian Ibrahim
+      </p>
     </div>
   );
 }
