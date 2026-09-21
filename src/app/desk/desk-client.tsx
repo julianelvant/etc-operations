@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { TutorRow } from "@/lib/attendance";
 import {
   bucketShiftsForDesk,
+  enrichShiftsWithAttendance,
   getMergedShiftsForDay,
 } from "@/lib/schedule";
 import { CheckInPanels } from "./check-in-panels";
@@ -47,28 +48,35 @@ export function DeskClient({
     return map;
   }, [tutors]);
 
+  const dayShifts = useMemo(() => {
+    const roster = getMergedShiftsForDay(slots);
+    const hints = live.attendance.map((row) => ({
+      tutorName: row.tutors?.name ?? "",
+      scheduledShift: row.scheduled_shift,
+      courses: row.tutors?.courses ?? [],
+    }));
+    return enrichShiftsWithAttendance(roster, hints);
+  }, [slots, live.attendance]);
+
   const boards = useMemo(() => {
-    const shifts = getMergedShiftsForDay(slots);
     if (!isToday) {
       return { dueNow: [], later: [], done: [] };
     }
     return bucketShiftsForDesk(
-      shifts,
+      dayShifts,
       live.nowMin,
       live.checkedInIds,
       live.closedIntervals,
       nameToTutorId,
     );
   }, [
-    slots,
+    dayShifts,
     isToday,
     live.nowMin,
     live.checkedInIds,
     live.closedIntervals,
     nameToTutorId,
   ]);
-
-  const dayShifts = useMemo(() => getMergedShiftsForDay(slots), [slots]);
 
   useEffect(() => {
     setSearchSeed("");
@@ -145,30 +153,28 @@ export function DeskClient({
         </div>
       )}
 
-      <div className="relative flex-1 overflow-y-auto px-4 py-5 lg:px-6">
-        <div className="mx-auto flex max-w-7xl flex-col gap-8">
-          <div className="grid gap-8 lg:grid-cols-2 lg:gap-10">
-            <HereNowBoard
-              openTutors={live.openTutors}
-              visitsByTutorId={live.visitsByTutorId}
-              highlightId={live.highlightId}
-              commentFocusId={live.commentFocusId}
-              isToday={isToday}
-              isPending={live.isPending}
-              onCheckOut={(id) => live.checkOutTutor(id)}
-              onAddStudent={(tutorId) => live.openStudentPanel(tutorId)}
-              onCheckOutStudent={live.checkOutStudent}
-              onUpdateTutorMeta={live.updateTutorMeta}
-            />
+      <div className="relative flex-1 overflow-y-auto px-4 py-5 lg:px-8">
+        <div className="flex w-full flex-col gap-10">
+          <HereNowBoard
+            openTutors={live.openTutors}
+            visitsByTutorId={live.visitsByTutorId}
+            highlightId={live.highlightId}
+            commentFocusId={live.commentFocusId}
+            isToday={isToday}
+            isPending={live.isPending}
+            onCheckOut={(id) => live.checkOutTutor(id)}
+            onAddStudent={(tutorId) => live.openStudentPanel(tutorId)}
+            onCheckOutStudent={live.checkOutStudent}
+            onUpdateTutorMeta={live.updateTutorMeta}
+          />
 
-            <DueNowBoard
-              rows={boards.dueNow}
-              nameToTutor={nameToTutor}
-              isToday={isToday}
-              isPending={live.isPending}
-              onCheckIn={(t, shift) => live.checkInTutor(t, shift)}
-            />
-          </div>
+          <DueNowBoard
+            rows={boards.dueNow}
+            nameToTutor={nameToTutor}
+            isToday={isToday}
+            isPending={live.isPending}
+            onCheckIn={(t, shift) => live.checkInTutor(t, shift)}
+          />
 
           <DayCalendar
             shifts={dayShifts}

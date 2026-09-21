@@ -1,5 +1,5 @@
 import scheduleData from "@/data/schedule.json";
-import { formatShiftRange } from "@/lib/shift-time";
+import { formatShiftRange, shiftToMinutes } from "@/lib/shift-time";
 
 export type ScheduledTutor = {
   name: string;
@@ -243,6 +243,89 @@ export function getScheduledShiftForTutor(
   if (shifts.length === 0) return "";
   if (shifts.length === 1) return shifts[0].shiftLabel;
   return shifts.map((s) => s.shiftLabel).join(", ");
+}
+
+/** Minimal attendance hint used to overlay Excel / live scheduled_shift onto roster. */
+export type AttendanceShiftHint = {
+  tutorName: string;
+  scheduledShift: string | null | undefined;
+  courses?: string[];
+};
+
+/**
+ * Prefer Excel / attendance scheduled_shift times over hourly roster merges when
+ * present. Roster remains the fallback. Attendance-only tutors are appended.
+ */
+export function enrichShiftsWithAttendance(
+  rosterShifts: MergedShift[],
+  attendance: AttendanceShiftHint[],
+): MergedShift[] {
+  const result: MergedShift[] = rosterShifts.map((s) => ({
+    ...s,
+    courses: [...s.courses],
+  }));
+  const claimed = new Set<number>();
+
+  for (const row of attendance) {
+    const parsed = shiftToMinutes(row.scheduledShift);
+    if (!parsed) continue;
+    const nameLower = row.tutorName.trim().toLowerCase();
+    if (!nameLower) continue;
+
+    let bestIdx = -1;
+    let bestOverlap = 0;
+    for (let i = 0; i < result.length; i++) {
+      if (claimed.has(i)) continue;
+      if (result[i].name.toLowerCase() !== nameLower) continue;
+      const overlap =
+        Math.min(result[i].end, parsed.endMin) -
+        Math.max(result[i].start, parsed.startMin);
+      if (overlap > bestOverlap) {
+        bestOverlap = overlap;
+        bestIdx = i;
+      }
+    }
+
+    const label =
+      (row.scheduledShift && shiftToMinutes(row.scheduledShift)
+        ? String(row.scheduledShift).trim()
+        : null) ||
+      `${minutesToClock(parsed.startMin)}-${minutesToClock(parsed.endMin)}`;
+
+    if (bestIdx >= 0 && bestOverlap > 0) {
+      claimed.add(bestIdx);
+      const prev = result[bestIdx];
+      result[bestIdx] = {
+        ...prev,
+        start: parsed.startMin,
+        end: parsed.endMin,
+        shiftLabel: label,
+      };
+      continue;
+    }
+
+    const already = result.some(
+      (s) =>
+        s.name.toLowerCase() === nameLower &&
+        s.start === parsed.startMin &&
+        s.end === parsed.endMin,
+    );
+    if (already) continue;
+
+    const coursesFromRoster =
+      result.find((s) => s.name.toLowerCase() === nameLower)?.courses ?? [];
+    result.push({
+      name: row.tutorName.trim(),
+      courses: row.courses?.length ? [...row.courses] : [...coursesFromRoster],
+      start: parsed.startMin,
+      end: parsed.endMin,
+      shiftLabel: label,
+    });
+  }
+
+  return result.sort(
+    (a, b) => a.start - b.start || a.name.localeCompare(b.name),
+  );
 }
 
 export function getTutorsForDay(dayKey: string): ScheduledTutor[] {

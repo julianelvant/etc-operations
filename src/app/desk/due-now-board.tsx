@@ -60,25 +60,17 @@ export function DueNowBoard({
             return (
               <li
                 key={`${row.name}-${row.shiftLabel}`}
-                className="flex flex-wrap items-start justify-between gap-3 px-4 py-3.5"
+                className="flex items-center justify-between gap-4 px-5 py-3.5"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-base font-semibold leading-snug text-slate-900">
+                  <p className="truncate text-base font-semibold text-slate-900">
                     {row.name}
                   </p>
-                  <p className="mt-0.5 text-sm text-slate-500">
+                  <p className="mt-0.5 whitespace-nowrap text-sm tabular-nums text-slate-500">
                     {slotLabel(row.shiftLabel)}
                   </p>
-                  {row.courses.length > 0 ? (
-                    <p
-                      className="mt-1 text-xs leading-snug text-slate-400 break-words"
-                      title={row.courses.join(", ")}
-                    >
-                      {row.courses.join(", ")}
-                    </p>
-                  ) : null}
                 </div>
-                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                <div className="flex shrink-0 items-center gap-2">
                   <StatusPill status={row.status} />
                   {tutor && isToday ? (
                     <button

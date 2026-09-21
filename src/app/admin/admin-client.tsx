@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import type { StudentVisitRow, TutorAttendanceRow, TutorRow } from "@/lib/attendance";
 import type { DeskSessionRow } from "@/lib/auth/desk-sessions";
 import {
+  enrichShiftsWithAttendance,
   formatClock,
   formatDurationMinutes,
   getMergedShiftsForDay,
@@ -75,7 +76,17 @@ export function AdminClient({
     return map;
   }, [tutors]);
 
-  const dayShifts = useMemo(() => getMergedShiftsForDay(slots), [slots]);
+  const dayShifts = useMemo(() => {
+    const roster = getMergedShiftsForDay(slots);
+    return enrichShiftsWithAttendance(
+      roster,
+      attendance.map((row) => ({
+        tutorName: row.tutors?.name ?? "",
+        scheduledShift: row.scheduled_shift,
+        courses: row.tutors?.courses ?? [],
+      })),
+    );
+  }, [slots, attendance]);
   const checkedInIds = useMemo(
     () => new Set(attendance.filter((a) => !a.time_out).map((a) => a.tutor_id)),
     [attendance],
