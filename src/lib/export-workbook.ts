@@ -192,7 +192,8 @@ export async function buildAttendanceWorkbook(from: string, to: string) {
   // --- Tutors ---
   const tutorsSheet = replaceSheet(wb, "Tutors", TUTOR_WIDTHS);
   const headerTutor = tutorsSheet.getRow(1);
-  headerTutor.values = [undefined, ...TUTOR_HEADERS];
+  // ExcelJS row.values is 0-indexed (index 0 = column A).
+  headerTutor.values = [...TUTOR_HEADERS];
   headerTutor.font = { name: "Calibri", size: 11 };
   headerTutor.commit();
 
@@ -219,7 +220,6 @@ export async function buildAttendanceWorkbook(from: string, to: string) {
     excelRowIdx += 1;
     const excelRow = tutorsSheet.getRow(excelRowIdx);
     excelRow.values = [
-      undefined,
       excelDate(row.attendance_date),
       name,
       row.scheduled_shift ?? "",
@@ -242,7 +242,7 @@ export async function buildAttendanceWorkbook(from: string, to: string) {
   // --- Tutoree ---
   const tutoree = replaceSheet(wb, "Tutoree", TUTOREE_WIDTHS);
   const headerVisit = tutoree.getRow(1);
-  headerVisit.values = [undefined, ...TUTOREE_HEADERS];
+  headerVisit.values = [...TUTOREE_HEADERS];
   headerVisit.font = { name: "Calibri", size: 11 };
   headerVisit.commit();
 
@@ -255,7 +255,6 @@ export async function buildAttendanceWorkbook(from: string, to: string) {
     const email = (row.student_email ?? "").trim();
     const excelRow = tutoree.getRow(r);
     excelRow.values = [
-      undefined,
       excelDate(row.visit_date),
       row.student_name,
       email ? { text: email, hyperlink: `mailto:${email}` } : "",
