@@ -159,38 +159,42 @@ export function DayCalendar({
         (b) =>
           b.name.toLowerCase() === name.toLowerCase() &&
           b.startMin < parsed.endMin &&
-          b.endMin > parsed.startMin &&
-          Math.abs(b.startMin - parsed.startMin) < 20,
+          b.endMin > parsed.startMin,
       );
 
       const status: CalendarBlock["status"] = !row.time_out ? "here" : "done";
 
       if (covered) {
+        // Prefer a single enriched roster block (import may be half-hour off)
+        let bestKey: string | null = null;
+        let bestOverlap = 0;
         for (const [k, b] of byKey) {
-          if (
-            b.name.toLowerCase() === name.toLowerCase() &&
-            b.startMin < parsed.endMin &&
-            b.endMin > parsed.startMin
-          ) {
-            const useImported =
-              Math.abs(parsed.startMin - b.startMin) >= 15 ||
-              Math.abs(parsed.endMin - b.endMin) >= 15;
-            byKey.set(k, {
-              ...b,
-              status,
-              attendanceId: row.id,
-              timeInLabel: row.time_in
-                ? formatClockShort(row.time_in)
-                : b.timeInLabel,
-              startMin: useImported ? parsed.startMin : b.startMin,
-              endMin: useImported ? parsed.endMin : b.endMin,
-              shiftLabel:
-                (row.scheduled_shift &&
-                  shiftToMinutes(row.scheduled_shift) &&
-                  row.scheduled_shift) ||
-                b.shiftLabel,
-            });
+          if (b.name.toLowerCase() !== name.toLowerCase()) continue;
+          const overlap =
+            Math.min(b.endMin, parsed.endMin) -
+            Math.max(b.startMin, parsed.startMin);
+          if (overlap > bestOverlap) {
+            bestOverlap = overlap;
+            bestKey = k;
           }
+        }
+        if (bestKey) {
+          const b = byKey.get(bestKey)!;
+          byKey.set(bestKey, {
+            ...b,
+            status,
+            attendanceId: row.id,
+            timeInLabel: row.time_in
+              ? formatClockShort(row.time_in)
+              : b.timeInLabel,
+            startMin: parsed.startMin,
+            endMin: parsed.endMin,
+            shiftLabel:
+              (row.scheduled_shift &&
+                shiftToMinutes(row.scheduled_shift) &&
+                row.scheduled_shift) ||
+              b.shiftLabel,
+          });
         }
         continue;
       }
