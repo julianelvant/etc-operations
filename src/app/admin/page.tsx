@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import {
@@ -12,6 +13,10 @@ import {
 import { getBeirutParts, getScheduleForDate, getWeekDates } from "@/lib/schedule";
 import { createClient } from "@/lib/supabase/server";
 import { AdminClient } from "./admin-client";
+
+export const metadata: Metadata = {
+  title: "Admin",
+};
 
 export default async function AdminPage({
   searchParams,

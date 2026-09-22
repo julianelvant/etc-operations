@@ -112,13 +112,13 @@ export function DeskClient({
 
       {!isToday ? (
         <div
-          className="mx-4 mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 lg:mx-6"
+          className="mx-4 mt-3 rounded-lg border border-[var(--status-due-border)] bg-[var(--status-due-bg)] px-4 py-3 text-sm text-[var(--status-due-ink)] lg:mx-6"
           role="status"
         >
           Viewing schedule for {date}.{" "}
           <Link
             href={`/desk?date=${today}`}
-            className="font-semibold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+            className="font-semibold underline focus-ring rounded"
           >
             Switch to Today
           </Link>{" "}
@@ -145,10 +145,10 @@ export function DeskClient({
 
       {(live.toast || live.error) && (
         <div
-          className={`mx-4 mt-3 rounded-xl px-4 py-2.5 text-sm lg:mx-6 ${
+          className={`mx-4 mt-3 rounded-lg px-4 py-2.5 text-sm lg:mx-6 ${
             live.error
-              ? "bg-rose-50 text-rose-700"
-              : "bg-emerald-50 text-emerald-800"
+              ? "bg-[var(--status-late-bg)] text-[var(--status-late-ink)]"
+              : "bg-[var(--status-here-bg)] text-[var(--status-here-ink)]"
           }`}
         >
           {live.error ?? live.toast}
@@ -156,7 +156,7 @@ export function DeskClient({
       )}
 
       <div className="relative flex-1 overflow-y-auto px-4 py-5 lg:px-8">
-        <div className="flex w-full flex-col gap-10">
+        <div className="flex w-full flex-col gap-8">
           <HereNowBoard
             openTutors={live.openTutors}
             tutors={tutors}
@@ -196,16 +196,16 @@ export function DeskClient({
         </div>
       </div>
 
-      <div className="border-t border-slate-200 bg-white px-4 py-3 lg:px-6">
+      <div className="border-t border-border bg-surface px-4 py-3 lg:px-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm font-medium text-slate-700">
+          <p className="text-sm font-medium text-ink">
             In now: {live.openTutors.length} tutor
             {live.openTutors.length === 1 ? "" : "s"} · {live.openStudentCount}{" "}
             student{live.openStudentCount === 1 ? "" : "s"}
           </p>
           <Link
             href="/desk/export"
-            className="inline-flex min-h-11 items-center text-sm font-semibold text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+            className="inline-flex min-h-11 items-center text-sm font-semibold text-brand-ink hover:underline focus-ring rounded"
           >
             Export Excel →
           </Link>

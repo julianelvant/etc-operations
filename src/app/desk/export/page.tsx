@@ -1,8 +1,12 @@
-import Link from "next/link";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { getBeirutParts } from "@/lib/schedule";
 import { ExportForm } from "./export-form";
+
+export const metadata: Metadata = {
+  title: "Export",
+};
 
 export default async function ExportPage() {
   const session = await getSession();
@@ -12,21 +16,14 @@ export default async function ExportPage() {
 
   return (
     <div className="mx-auto w-full max-w-xl px-6 py-10">
-      <Link
-        href={`/desk?date=${date}`}
-        className="text-sm font-semibold text-emerald-700 hover:underline"
-      >
-        ← Back to desk
-      </Link>
-      <h1 className="mt-4 font-display text-3xl font-semibold text-slate-900">
+      <h1 className="font-display text-2xl font-semibold text-ink">
         Export attendance
       </h1>
-      <p className="mt-2 text-slate-600">
+      <p className="mt-2 text-sm text-muted">
         Download an Excel workbook for any date range. Sheets match your
-        template: <strong>General schedule</strong>, <strong>Tutors</strong>,{" "}
-        <strong>Tutoree</strong>.
+        template: General schedule, Tutors, Tutoree.
       </p>
-      <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mt-8 surface-panel p-6">
         <ExportForm today={date} />
       </div>
     </div>

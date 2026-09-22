@@ -97,57 +97,49 @@ export function AdminClient({
 
   return (
     <div className="space-y-8">
-      {/* Hero strip */}
       <section className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800/70">
-            Command view
-          </p>
-          <h1 className="font-display mt-1 text-3xl font-semibold text-slate-900 sm:text-4xl">
-            Everyone&apos;s day
+          <h1 className="font-display text-2xl font-semibold text-ink sm:text-3xl">
+            Operations overview
           </h1>
-          <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600">
-            Shifts, check-ins, check-outs, and who signed into the desk —
-            one place for ops oversight.
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">
+            Shifts, check-ins, check-outs, and who signed into the desk.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => router.push(`/admin?date=${today}`)}
-            className={`inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold ${
+            className={`inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-semibold focus-ring ${
               date === today
-                ? "bg-emerald-800 text-white"
-                : "border border-slate-200 bg-white text-slate-700"
+                ? "bg-brand text-white"
+                : "border border-border bg-surface text-ink"
             }`}
           >
             Today
           </button>
-          <label className="inline-flex min-h-11 items-center gap-2 rounded-full border border-slate-200 bg-white px-3 text-sm text-slate-700">
-            <span className="text-slate-400">Date</span>
+          <label className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm text-ink">
+            <span className="text-muted">Date</span>
             <input
               type="date"
               value={date}
               onChange={(e) => router.push(`/admin?date=${e.target.value}`)}
-              className="border-0 bg-transparent py-2 outline-none"
+              className="border-0 bg-transparent py-2 outline-none focus-ring rounded"
             />
           </label>
         </div>
       </section>
 
-      {/* Presence */}
-      <section className="rounded-3xl border border-emerald-900/10 bg-white/80 p-5 shadow-sm backdrop-blur">
+      <section className="surface-panel p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-display text-lg font-semibold text-slate-900">
-            Active now
-          </h2>
-          <p className="text-sm tabular-nums text-slate-500">
+          <h2 className="text-base font-semibold text-ink">Active now</h2>
+          <p className="text-sm tabular-nums text-muted">
             {activeSessions.length} session
             {activeSessions.length === 1 ? "" : "s"}
           </p>
         </div>
         {activeSessions.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-500">
+          <p className="mt-3 text-sm text-muted">
             No desk or admin accounts currently active.
           </p>
         ) : (
@@ -155,15 +147,15 @@ export function AdminClient({
             {activeSessions.map((s) => (
               <li
                 key={s.id}
-                className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm text-emerald-950"
+                className="inline-flex items-center gap-2 rounded-lg border border-[var(--status-here-border)] bg-[var(--status-here-bg)] px-3 py-1.5 text-sm text-[var(--status-here-ink)]"
               >
                 <span
-                  className="h-2 w-2 rounded-full bg-emerald-500"
+                  className="h-2 w-2 rounded-full bg-brand"
                   aria-hidden
                 />
                 <span className="font-semibold">{s.username}</span>
-                <span className="text-emerald-800/70">{s.role}</span>
-                <span className="text-xs text-emerald-800/60">
+                <span className="opacity-70">{s.role}</span>
+                <span className="text-xs opacity-60">
                   seen {fmtWhen(s.last_seen_at)}
                 </span>
               </li>
@@ -179,21 +171,22 @@ export function AdminClient({
         <Stat label="Student visits" value={String(visits.length)} />
       </section>
 
-      <div className="flex gap-1.5 overflow-x-auto pb-1">
+      <div className="flex gap-1.5 overflow-x-auto pb-1" role="navigation" aria-label="Week">
         {week.map((d) => (
           <Link
             key={d.date}
             href={`/admin?date=${d.date}`}
-            className={`flex min-w-[3.5rem] flex-col items-center rounded-2xl px-2 py-2 text-center ${
+            aria-current={d.date === date ? "date" : undefined}
+            className={`flex min-w-[3.25rem] flex-col items-center rounded-lg px-2 py-2 text-center focus-ring ${
               d.date === date
-                ? "bg-emerald-800 text-white"
-                : "bg-white/70 text-slate-700 ring-1 ring-slate-200"
+                ? "bg-brand text-white"
+                : "bg-surface text-ink ring-1 ring-border"
             }`}
           >
-            <span className="text-[10px] font-semibold uppercase opacity-80">
+            <span className="text-[11px] font-medium uppercase opacity-80">
               {d.label}
             </span>
-            <span className="font-display text-lg font-semibold">{d.dayNum}</span>
+            <span className="text-lg font-semibold tabular-nums">{d.dayNum}</span>
           </Link>
         ))}
       </div>
@@ -210,14 +203,10 @@ export function AdminClient({
 
       {/* Tables */}
       <section className="grid gap-8 lg:grid-cols-2">
-        <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white/90 shadow-sm">
-          <div className="border-b border-slate-100 px-5 py-4">
-            <h2 className="font-display text-lg font-semibold text-slate-900">
-              Tutor check-ins
-            </h2>
-            <p className="text-sm text-slate-500">
-              Including who recorded each row
-            </p>
+        <div className="overflow-hidden surface-panel">
+          <div className="border-b border-border px-5 py-4">
+            <h2 className="text-base font-semibold text-ink">Tutor check-ins</h2>
+            <p className="text-sm text-muted">Including who recorded each row</p>
           </div>
           <div className="max-h-[28rem] overflow-auto">
             <table className="w-full min-w-[36rem] text-left text-sm">
@@ -277,12 +266,10 @@ export function AdminClient({
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white/90 shadow-sm">
-          <div className="border-b border-slate-100 px-5 py-4">
-            <h2 className="font-display text-lg font-semibold text-slate-900">
-              Student visits
-            </h2>
-            <p className="text-sm text-slate-500">Tutoree log for this day</p>
+        <div className="overflow-hidden surface-panel">
+          <div className="border-b border-border px-5 py-4">
+            <h2 className="text-base font-semibold text-ink">Student visits</h2>
+            <p className="text-sm text-muted">Tutoree log for this day</p>
           </div>
           <div className="max-h-[28rem] overflow-auto">
             <table className="w-full min-w-[32rem] text-left text-sm">
@@ -344,14 +331,10 @@ export function AdminClient({
       </section>
 
       {/* Login history */}
-      <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white/90 shadow-sm">
-        <div className="border-b border-slate-100 px-5 py-4">
-          <h2 className="font-display text-lg font-semibold text-slate-900">
-            Login history
-          </h2>
-          <p className="text-sm text-slate-500">
-            Desk and admin account sessions
-          </p>
+      <section className="overflow-hidden surface-panel">
+        <div className="border-b border-border px-5 py-4">
+          <h2 className="text-base font-semibold text-ink">Login history</h2>
+          <p className="text-sm text-muted">Desk and admin account sessions</p>
         </div>
         <div className="max-h-[22rem] overflow-auto">
           <table className="w-full min-w-[40rem] text-left text-sm">
@@ -386,7 +369,7 @@ export function AdminClient({
                     </td>
                     <td className="px-4 py-3 tabular-nums text-slate-700">
                       {s.logged_out_at ? fmtWhen(s.logged_out_at) : (
-                        <span className="font-medium text-emerald-700">
+                        <span className="font-medium text-brand-ink">
                           active
                         </span>
                       )}
@@ -410,11 +393,9 @@ export function AdminClient({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-3xl border border-slate-200/80 bg-white/80 px-5 py-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-        {label}
-      </p>
-      <p className="font-display mt-1 text-3xl font-semibold tabular-nums text-slate-900">
+    <div className="surface-panel px-5 py-4">
+      <p className="text-sm font-medium text-muted">{label}</p>
+      <p className="mt-1 text-3xl font-semibold tabular-nums text-ink">
         {value}
       </p>
     </div>

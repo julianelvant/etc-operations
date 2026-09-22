@@ -4,8 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { SessionRole } from "@/lib/auth/session";
 import type { StaffAccount } from "@/lib/auth/staff-accounts";
 
-const inputClass =
-  "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/25";
+const inputClass = "input-field";
 
 const emptyForm = {
   username: "",
@@ -150,39 +149,37 @@ export function AccountsClient() {
   return (
     <div className="space-y-8">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800/70">
-          Access
-        </p>
-        <h1 className="font-display text-3xl font-semibold text-slate-900">
+        <h1 className="font-display text-2xl font-semibold text-ink sm:text-3xl">
           Staff accounts
         </h1>
-        <p className="max-w-2xl text-sm text-slate-600">
+        <p className="max-w-2xl text-sm text-muted">
           Create and manage desk and admin logins — display name, username,
           password, role, and notes. Changes apply on the next sign-in.
         </p>
       </header>
 
       {error ? (
-        <p
-          className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-800"
+        <div
+          className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-[var(--status-late-bg)] px-4 py-3 text-sm text-[var(--status-late-ink)]"
           role="alert"
         >
-          {error}
-        </p>
+          <p>{error}</p>
+          <button type="button" onClick={() => void load()} className="btn-secondary min-h-9 px-3 py-1.5">
+            Retry
+          </button>
+        </div>
       ) : null}
       {toast ? (
         <p
-          className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+          className="rounded-lg bg-[var(--status-here-bg)] px-4 py-3 text-sm text-[var(--status-here-ink)]"
           role="status"
         >
           {toast}
         </p>
       ) : null}
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="font-display text-lg font-semibold text-slate-900">
-          Add account
-        </h2>
+      <section className="surface-panel p-5">
+        <h2 className="text-base font-semibold text-ink">Add account</h2>
         <form
           onSubmit={onCreate}
           className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
@@ -252,7 +249,7 @@ export function AccountsClient() {
             <button
               type="submit"
               disabled={creating}
-              className="inline-flex min-h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60"
+              className="btn-primary"
             >
               {creating ? "Creating…" : "Create account"}
             </button>
@@ -260,22 +257,34 @@ export function AccountsClient() {
         </form>
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-          <h2 className="font-display text-lg font-semibold text-slate-900">
-            All accounts
-          </h2>
-          <p className="text-sm tabular-nums text-slate-500">
+      <section className="surface-panel">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <h2 className="text-base font-semibold text-ink">All accounts</h2>
+          <p className="text-sm tabular-nums text-muted">
             {accounts.length} total
           </p>
         </div>
 
         {loading ? (
-          <p className="px-5 py-8 text-sm text-slate-500">Loading…</p>
+          <div className="px-5 py-10 text-center">
+            <p className="text-sm text-muted">Loading accounts…</p>
+          </div>
         ) : accounts.length === 0 ? (
-          <p className="px-5 py-8 text-sm text-slate-500">No accounts yet.</p>
+          <div className="px-5 py-10 text-center">
+            <p className="text-sm font-medium text-ink">No accounts yet</p>
+            <p className="mt-1 text-sm text-muted">
+              Create a desk or admin account using the form above.
+            </p>
+            <button
+              type="button"
+              onClick={() => void load()}
+              className="btn-secondary mt-4"
+            >
+              Retry
+            </button>
+          </div>
         ) : (
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-border">
             {accounts.map((a) => (
               <li key={a.id} className="px-5 py-4">
                 {editingId === a.id ? (
@@ -361,14 +370,14 @@ export function AccountsClient() {
                       <button
                         type="submit"
                         disabled={saving}
-                        className="inline-flex min-h-10 items-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60"
+                        className="btn-primary min-h-10"
                       >
                         {saving ? "Saving…" : "Save"}
                       </button>
                       <button
                         type="button"
                         onClick={() => setEditingId(null)}
-                        className="inline-flex min-h-10 items-center rounded-full border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                        className="btn-secondary min-h-10"
                       >
                         Cancel
                       </button>
@@ -377,13 +386,13 @@ export function AccountsClient() {
                 ) : (
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-semibold text-slate-900">
+                      <p className="font-semibold text-ink">
                         {a.display_name || a.username}
-                        <span className="ml-2 font-normal text-slate-500">
+                        <span className="ml-2 font-normal text-muted">
                           @{a.username}
                         </span>
                       </p>
-                      <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                      <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
                         <RoleBadge role={a.role} />
                         <StatusBadge active={a.active} />
                         {a.notes ? <span>· {a.notes}</span> : null}
@@ -393,14 +402,14 @@ export function AccountsClient() {
                       <button
                         type="button"
                         onClick={() => startEdit(a)}
-                        className="inline-flex min-h-10 items-center rounded-full border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+                        className="btn-secondary min-h-10 px-3"
                       >
                         Edit
                       </button>
                       <button
                         type="button"
                         onClick={() => void onDelete(a)}
-                        className="inline-flex min-h-10 items-center rounded-full border border-rose-200 bg-rose-50 px-3 text-sm font-semibold text-rose-800 hover:bg-rose-100"
+                        className="inline-flex min-h-10 items-center rounded-lg border border-[var(--status-late-border)] bg-[var(--status-late-bg)] px-3 text-sm font-semibold text-[var(--status-late-ink)] hover:opacity-90 focus-ring"
                       >
                         Delete
                       </button>
@@ -427,9 +436,7 @@ function Field({
 }) {
   return (
     <label className={`block ${className}`}>
-      <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-        {label}
-      </span>
+      <span className="mb-1 block text-sm font-medium text-ink">{label}</span>
       {children}
     </label>
   );
@@ -438,10 +445,10 @@ function Field({
 function RoleBadge({ role }: { role: SessionRole }) {
   return (
     <span
-      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+      className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
         role === "admin"
-          ? "bg-violet-100 text-violet-900"
-          : "bg-sky-100 text-sky-900"
+          ? "bg-slate-800 text-white"
+          : "bg-bg text-ink ring-1 ring-border"
       }`}
     >
       {role}
@@ -452,10 +459,10 @@ function RoleBadge({ role }: { role: SessionRole }) {
 function StatusBadge({ active }: { active: boolean }) {
   return (
     <span
-      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+      className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
         active
-          ? "bg-emerald-100 text-emerald-900"
-          : "bg-slate-100 text-slate-600"
+          ? "bg-[var(--status-here-bg)] text-[var(--status-here-ink)]"
+          : "bg-[var(--status-done-bg)] text-[var(--status-done-ink)]"
       }`}
     >
       {active ? "active" : "inactive"}

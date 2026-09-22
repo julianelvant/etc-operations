@@ -25,13 +25,8 @@ export async function loginAction(
   let auth: Awaited<ReturnType<typeof authenticateStaff>> = null;
   try {
     auth = await authenticateStaff(username, password);
-  } catch (e) {
-    return {
-      error:
-        e instanceof Error
-          ? `Login failed: ${e.message}`
-          : "Login failed",
-    };
+  } catch {
+    return { error: "Sign-in failed. Please try again." };
   }
   if (!auth) {
     return { error: "Invalid username or password." };
@@ -50,13 +45,8 @@ export async function loginAction(
       role,
       userAgent,
     });
-  } catch (e) {
-    return {
-      error:
-        e instanceof Error
-          ? `Login audit failed: ${e.message}`
-          : "Login audit failed",
-    };
+  } catch {
+    return { error: "Sign-in failed. Please try again." };
   }
 
   const token = await createSessionToken({

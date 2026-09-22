@@ -13,7 +13,10 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "ETC Attendance Desk",
+  title: {
+    default: "ETC",
+    template: "%s · ETC",
+  },
   description: "Tutor and student attendance for ETC Operations",
 };
 

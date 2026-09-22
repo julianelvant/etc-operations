@@ -20,18 +20,18 @@ export function LoginForm({ next }: { next: string }) {
     >
       <input type="hidden" name="next" value={next} />
       <label className="block">
-        <span className="mb-1.5 block text-sm font-medium text-slate-700">
+        <span className="mb-1.5 block text-sm font-medium text-ink">
           Username
         </span>
         <input
           name="username"
           autoComplete="username"
           required
-          className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none ring-emerald-500 focus:ring-2"
+          className="input-field"
         />
       </label>
       <label className="block">
-        <span className="mb-1.5 block text-sm font-medium text-slate-700">
+        <span className="mb-1.5 block text-sm font-medium text-ink">
           Password
         </span>
         <input
@@ -39,19 +39,18 @@ export function LoginForm({ next }: { next: string }) {
           type="password"
           autoComplete="current-password"
           required
-          className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none ring-emerald-500 focus:ring-2"
+          className="input-field"
         />
       </label>
       {error ? (
-        <p className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <p
+          role="alert"
+          className="rounded-lg bg-[var(--status-late-bg)] px-4 py-3 text-sm text-[var(--status-late-ink)]"
+        >
           {error}
         </p>
       ) : null}
-      <button
-        type="submit"
-        disabled={pending}
-        className="mt-2 w-full rounded-full bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-60"
-      >
+      <button type="submit" disabled={pending} className="btn-primary mt-2 w-full">
         {pending ? "Signing in…" : "Sign in"}
       </button>
     </form>

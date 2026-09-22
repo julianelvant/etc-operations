@@ -25,35 +25,28 @@ export function DueNowBoard({
   onCheckIn,
 }: Props) {
   return (
-    <section className="space-y-4" aria-labelledby="due-now-heading">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-amber-800">
-            Next up
-          </p>
-          <h2
-            id="due-now-heading"
-            className="font-display text-2xl font-semibold text-slate-900"
-          >
-            Due now
-          </h2>
-        </div>
-        <p className="text-sm tabular-nums text-slate-500">
-          {rows.length} tutor{rows.length === 1 ? "" : "s"}
+    <section className="space-y-3" aria-labelledby="due-now-heading">
+      <div>
+        <h2
+          id="due-now-heading"
+          className="font-display text-xl font-semibold text-ink"
+        >
+          Due now
+        </h2>
+        <p className="mt-0.5 text-sm text-muted">
+          {rows.length} tutor{rows.length === 1 ? "" : "s"} in the next window
         </p>
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 px-5 py-8 text-center">
-          <p className="text-sm font-medium text-slate-700">
-            Nobody due right now
-          </p>
-          <p className="mt-1 text-sm text-slate-500">
+        <div className="surface-panel border-dashed px-5 py-8 text-center">
+          <p className="text-sm font-medium text-ink">Nobody due right now</p>
+          <p className="mt-1 text-sm text-muted">
             Use search or Walk-in when someone arrives early.
           </p>
         </div>
       ) : (
-        <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <ul className="divide-y divide-border overflow-hidden surface-panel">
           {rows.map((row) => {
             const tutor = nameToTutor.get(row.name.toLowerCase());
             const pending = tutor ? isPending(`in:${tutor.id}`) : false;
@@ -63,10 +56,10 @@ export function DueNowBoard({
                 className="flex items-center justify-between gap-4 px-5 py-3.5"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-base font-semibold text-slate-900">
+                  <p className="truncate text-base font-semibold text-ink">
                     {row.name}
                   </p>
-                  <p className="mt-0.5 whitespace-nowrap text-sm tabular-nums text-slate-500">
+                  <p className="mt-0.5 whitespace-nowrap text-sm tabular-nums text-muted">
                     {slotLabel(row.shiftLabel)}
                   </p>
                 </div>
@@ -77,7 +70,7 @@ export function DueNowBoard({
                       type="button"
                       disabled={pending}
                       onClick={() => onCheckIn(tutor, row.shiftLabel)}
-                      className="inline-flex min-h-11 min-w-[5.5rem] items-center justify-center rounded-full bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:opacity-60"
+                      className="btn-primary min-w-[5.5rem] px-4"
                     >
                       Check in
                     </button>
@@ -93,52 +86,27 @@ export function DueNowBoard({
 }
 
 function StatusPill({ status }: { status: ShiftStatus }) {
-  if (status === "late") {
-    return (
-      <span
-        className="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-800"
-        aria-label="Status: late"
-      >
-        Late
-      </span>
-    );
-  }
-  if (status === "due") {
-    return (
-      <span
-        className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900"
-        aria-label="Status: due"
-      >
-        Due
-      </span>
-    );
-  }
-  if (status === "upcoming") {
-    return (
-      <span
-        className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600"
-        aria-label="Status: upcoming"
-      >
-        Upcoming
-      </span>
-    );
-  }
-  if (status === "done") {
-    return (
-      <span
-        className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500"
-        aria-label="Status: done"
-      >
-        Done
-      </span>
-    );
-  }
+  const styles: Record<ShiftStatus, string> = {
+    late: "bg-[var(--status-late-bg)] text-[var(--status-late-ink)] border-[var(--status-late-border)]",
+    due: "bg-[var(--status-due-bg)] text-[var(--status-due-ink)] border-[var(--status-due-border)]",
+    upcoming:
+      "bg-[var(--status-done-bg)] text-[var(--status-done-ink)] border-[var(--status-done-border)]",
+    done: "bg-[var(--status-done-bg)] text-[var(--status-done-ink)] border-[var(--status-done-border)]",
+    here: "bg-[var(--status-here-bg)] text-[var(--status-here-ink)] border-[var(--status-here-border)]",
+  };
+  const labels: Record<ShiftStatus, string> = {
+    late: "Late",
+    due: "Due",
+    upcoming: "Upcoming",
+    done: "Done",
+    here: "Here",
+  };
   return (
     <span
-      className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800"
-      aria-label="Status: here"
+      className={`rounded-md border px-2 py-0.5 text-xs font-semibold ${styles[status]}`}
+      aria-label={`Status: ${labels[status].toLowerCase()}`}
     >
-      Here
+      {labels[status]}
     </span>
   );
 }

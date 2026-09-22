@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getSession } from "@/lib/auth/session";
 import {
   getAttendanceForDate,
@@ -11,6 +12,10 @@ import {
 } from "@/lib/schedule";
 import { DeskClient } from "./desk-client";
 import { redirect } from "next/navigation";
+
+export const metadata: Metadata = {
+  title: "Desk",
+};
 
 export default async function DeskPage({
   searchParams,

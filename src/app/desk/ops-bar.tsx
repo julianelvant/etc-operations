@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   useEffect,
@@ -154,17 +153,17 @@ export function OpsBar({
   }
 
   return (
-    <div className="border-b border-slate-200 bg-[#f3f5f7]/95 backdrop-blur">
+    <div className="border-b border-border bg-bg/95 backdrop-blur">
       <div className="flex flex-col gap-3 px-4 py-3 lg:px-6">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => router.push("/desk")}
-              className={`inline-flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 ${
+              className={`inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold focus-ring ${
                 isToday
-                  ? "bg-emerald-600 text-white"
-                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  ? "bg-brand text-white"
+                  : "border border-border bg-surface text-ink hover:bg-slate-50"
               }`}
               aria-current={isToday ? "date" : undefined}
             >
@@ -180,33 +179,16 @@ export function OpsBar({
               onChange={(e) => {
                 if (e.target.value) router.push(`/desk?date=${e.target.value}`);
               }}
-              className="min-h-11 rounded-xl border border-slate-200 bg-white px-2 text-sm text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+              className="input-field min-h-11 w-auto"
             />
-            {!isToday ? (
-              <Link
-                href={`/desk?date=${today}`}
-                className="text-sm font-semibold text-emerald-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
-              >
-                Jump to today
-              </Link>
-            ) : (
-              <NowClock isToday={isToday} />
-            )}
+            {isToday ? <NowClock isToday={isToday} /> : null}
           </div>
 
           <div className="ml-auto flex gap-2">
-            <button
-              type="button"
-              onClick={onWalkIn}
-              className="inline-flex min-h-11 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
-            >
+            <button type="button" onClick={onWalkIn} className="btn-secondary">
               Walk-in
             </button>
-            <button
-              type="button"
-              onClick={onAddStudent}
-              className="inline-flex min-h-11 items-center rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
-            >
+            <button type="button" onClick={onAddStudent} className="btn-primary">
               Add student
             </button>
           </div>
@@ -228,7 +210,7 @@ export function OpsBar({
               onBlur={() => window.setTimeout(() => setOpen(false), 150)}
               onKeyDown={onKeyDown}
               placeholder="Search name or course — press / then Enter to check in"
-              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+              className="input-field py-3 text-base"
               autoComplete="off"
               aria-autocomplete="list"
               aria-expanded={open && hits.length > 0}
@@ -239,7 +221,7 @@ export function OpsBar({
             <ul
               id="ops-search-results"
               role="listbox"
-              className="absolute inset-x-0 top-full z-30 mt-1 max-h-80 overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+              className="absolute inset-x-0 top-full z-30 mt-1 max-h-80 overflow-y-auto rounded-lg border border-border bg-surface py-1 shadow-lg"
             >
               {hits.map((hit, i) => {
                 const inNow = hit.tutor
@@ -255,22 +237,22 @@ export function OpsBar({
                       disabled={!hit.tutor || inNow || pending || !isToday}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => selectHit(hit)}
-                      className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-emerald-600 disabled:opacity-50 ${
-                        i === active ? "bg-emerald-50" : "hover:bg-slate-50"
+                      className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left focus-ring disabled:opacity-50 ${
+                        i === active ? "bg-brand-soft" : "hover:bg-bg"
                       }`}
                     >
                       <span className="min-w-0">
-                        <span className="block truncate font-medium text-slate-900">
+                        <span className="block truncate font-medium text-ink">
                           {hit.name}
                         </span>
-                        <span className="block truncate text-xs text-slate-500">
+                        <span className="block truncate text-xs text-muted">
                           {hit.shift
                             ? hit.shift.shiftLabel
                             : "Walk-in · not on schedule"}
                           {hit.courses[0] ? ` · ${hit.courses[0]}` : ""}
                         </span>
                       </span>
-                      <span className="shrink-0 text-sm font-semibold text-emerald-700">
+                      <span className="shrink-0 text-sm font-semibold text-brand-ink">
                         {inNow ? "Here" : "Check in"}
                       </span>
                     </button>
@@ -281,8 +263,11 @@ export function OpsBar({
           ) : null}
         </form>
 
-        {/* Compact week glance — secondary, not primary chrome */}
-        <div className="flex gap-1 overflow-x-auto pb-0.5" role="navigation" aria-label="Week">
+        <div
+          className="flex gap-1 overflow-x-auto pb-0.5"
+          role="navigation"
+          aria-label="Week"
+        >
           {week.map((d) => {
             const selected = d.date === date;
             const isTodayCell = d.date === today;
@@ -293,16 +278,18 @@ export function OpsBar({
                 onClick={() => router.push(`/desk?date=${d.date}`)}
                 aria-current={selected ? "date" : undefined}
                 aria-label={`${d.label} ${d.dayNum}${isTodayCell ? ", today" : ""}${d.tutorCount ? `, ${d.tutorCount} tutors` : ""}`}
-                className={`inline-flex min-h-11 min-w-[3.25rem] flex-col items-center justify-center rounded-xl px-2 text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 ${
+                className={`inline-flex min-h-10 min-w-[2.75rem] flex-col items-center justify-center rounded-lg px-1.5 text-center text-xs focus-ring ${
                   selected
-                    ? "bg-emerald-600 text-white"
-                    : "bg-white text-slate-700 hover:bg-slate-100"
+                    ? "bg-brand text-white"
+                    : "bg-surface text-muted hover:bg-slate-100"
                 }`}
               >
-                <span className="text-[10px] font-semibold uppercase opacity-80">
+                <span className="font-medium uppercase opacity-80">
                   {d.label}
                 </span>
-                <span className="text-sm font-semibold">{d.dayNum}</span>
+                <span className="text-sm font-semibold tabular-nums">
+                  {d.dayNum}
+                </span>
               </button>
             );
           })}

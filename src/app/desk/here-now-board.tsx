@@ -50,29 +50,25 @@ export function HereNowBoard({
   return (
     <div className="space-y-4">
       <section className="space-y-3" aria-labelledby="here-now-heading">
-        <div className="flex items-end justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">
-              Live
-            </p>
-            <h2
-              id="here-now-heading"
-              className="font-display text-2xl font-semibold text-slate-900"
-            >
-              Here now
-            </h2>
-          </div>
-          <p className="text-sm tabular-nums text-slate-500">
-            {openTutors.length} tutor{openTutors.length === 1 ? "" : "s"}
+        <div>
+          <h2
+            id="here-now-heading"
+            className="font-display text-xl font-semibold text-ink"
+          >
+            Here now
+          </h2>
+          <p className="mt-0.5 text-sm text-muted">
+            {openTutors.length} tutor{openTutors.length === 1 ? "" : "s"} checked
+            in
           </p>
         </div>
 
         {openTutors.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 px-5 py-8 text-center">
-            <p className="font-display text-lg font-semibold text-slate-800">
+          <div className="surface-panel border-dashed px-5 py-8 text-center">
+            <p className="text-base font-semibold text-ink">
               No one checked in yet
             </p>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-muted">
               Search a name above or check in from Due now.
             </p>
           </div>
@@ -163,8 +159,8 @@ function HereNowCard({
 
   return (
     <li
-      className={`relative rounded-2xl bg-emerald-700 text-white shadow-sm transition ${
-        hot ? "ring-2 ring-emerald-300 ring-offset-2" : ""
+      className={`relative overflow-hidden rounded-xl border border-[var(--status-here-border)] bg-surface text-ink transition ${
+        hot ? "ring-2 ring-brand ring-offset-2" : ""
       }`}
       onContextMenu={(e) => {
         if (!onEditTimes) return;
@@ -172,16 +168,17 @@ function HereNowCard({
         setMenu({ x: e.clientX, y: e.clientY });
       }}
     >
-      <div className="flex items-stretch gap-1 p-2 sm:p-2.5">
+      <div className="absolute inset-y-0 left-0 w-1 bg-brand" aria-hidden />
+      <div className="flex items-stretch gap-1 p-2 pl-3 sm:p-2.5 sm:pl-3.5">
         <button
           type="button"
           aria-expanded={open}
           aria-controls={panelId}
           onClick={() => setOpen((v) => !v)}
-          className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-brand-soft focus-ring"
         >
           <span
-            className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/15 text-emerald-50 transition ${
+            className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-soft text-brand-ink transition ${
               open ? "rotate-90" : ""
             }`}
             aria-hidden
@@ -189,10 +186,10 @@ function HereNowCard({
             ▸
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate font-display text-base font-semibold leading-snug sm:text-lg">
+            <span className="block truncate text-base font-semibold leading-snug sm:text-lg">
               {row.tutors?.name ?? "Tutor"}
             </span>
-            <span className="mt-0.5 block truncate text-sm tabular-nums text-emerald-100">
+            <span className="mt-0.5 block truncate text-sm tabular-nums text-muted">
               {meta}
               {openStudents.length > 0
                 ? ` · ${openStudents.length} student${
@@ -207,7 +204,7 @@ function HereNowCard({
             type="button"
             disabled={outPending}
             onClick={() => onCheckOut(row.id)}
-            className="m-1 inline-flex min-h-11 shrink-0 items-center justify-center self-center rounded-lg bg-white/15 px-3 text-sm font-bold hover:bg-white/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-60"
+            className="btn-primary m-1 min-h-11 shrink-0 self-center px-3"
           >
             Check out
           </button>
@@ -217,7 +214,7 @@ function HereNowCard({
       {open ? (
         <div
           id={panelId}
-          className="space-y-4 border-t border-white/15 px-4 pb-4 pt-3"
+          className="space-y-4 border-t border-border px-4 pb-4 pt-3"
         >
           {isToday ? (
             <TutorMetaEditor
@@ -227,7 +224,7 @@ function HereNowCard({
               onSave={onUpdateTutorMeta}
             />
           ) : row.notes || row.role ? (
-            <p className="text-xs text-emerald-100/90">
+            <p className="text-xs text-muted">
               {row.role ? `${row.role}` : ""}
               {row.role && row.notes ? " · " : ""}
               {row.notes}
@@ -236,15 +233,15 @@ function HereNowCard({
 
           <div>
             {openStudents.length === 0 ? (
-              <p className="text-xs text-emerald-100/80">No students yet</p>
+              <p className="text-xs text-muted">No students yet</p>
             ) : (
               <ul className="space-y-2">
                 {openStudents.map((v) => (
                   <li
                     key={v.id}
-                    className="flex items-start justify-between gap-3 rounded-lg bg-black/15 px-3 py-2 text-xs"
+                    className="flex items-start justify-between gap-3 rounded-lg bg-bg px-3 py-2 text-xs"
                   >
-                    <span className="min-w-0 leading-snug break-words">
+                    <span className="min-w-0 leading-snug break-words text-ink">
                       {v.student_name}
                       {v.course ? ` · ${v.course}` : ""}
                     </span>
@@ -253,7 +250,7 @@ function HereNowCard({
                         type="button"
                         disabled={isPending(`sout:${v.id}`)}
                         onClick={() => onCheckOutStudent(v.id)}
-                        className="min-h-8 shrink-0 px-1 font-semibold text-emerald-100 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-60"
+                        className="min-h-8 shrink-0 px-1 font-semibold text-brand-ink hover:underline focus-ring disabled:opacity-60"
                       >
                         Out
                       </button>
@@ -269,7 +266,7 @@ function HereNowCard({
               <button
                 type="button"
                 onClick={() => onEditTimes(row)}
-                className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg border border-white/25 text-sm font-semibold text-emerald-50 hover:bg-white/10"
+                className="btn-secondary flex-1"
               >
                 Edit times
               </button>
@@ -278,7 +275,7 @@ function HereNowCard({
               <button
                 type="button"
                 onClick={() => onAddStudent(row.tutor_id)}
-                className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg border border-white/25 text-sm font-semibold text-emerald-50 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className="btn-secondary flex-1"
               >
                 + Add student
               </button>
@@ -289,13 +286,13 @@ function HereNowCard({
 
       {menu && onEditTimes ? (
         <div
-          className="fixed z-50 min-w-[10rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-slate-900 shadow-lg"
+          className="fixed z-50 min-w-[10rem] overflow-hidden rounded-lg border border-border bg-surface py-1 text-ink shadow-lg"
           style={{ left: menu.x, top: menu.y }}
           role="menu"
         >
           <button
             type="button"
-            className="block w-full px-3 py-2 text-left text-sm font-medium hover:bg-emerald-50"
+            className="block w-full px-3 py-2 text-left text-sm font-medium hover:bg-brand-soft"
             onClick={() => {
               setMenu(null);
               onEditTimes(row);
@@ -343,20 +340,18 @@ function OfferedCourses({
 
   return (
     <section className="space-y-2" aria-labelledby="offered-courses-heading">
-      <div className="flex items-baseline justify-between gap-2">
-        <h2
-          id="offered-courses-heading"
-          className="text-sm font-semibold text-slate-700"
-        >
-          Offered courses
-          <span className="ml-2 font-normal tabular-nums text-slate-400">
-            {byCourse.length}
-          </span>
-        </h2>
-      </div>
+      <h2
+        id="offered-courses-heading"
+        className="text-sm font-semibold text-ink"
+      >
+        Offered courses
+        <span className="ml-2 font-normal tabular-nums text-muted">
+          {byCourse.length}
+        </span>
+      </h2>
 
       {byCourse.length === 0 ? (
-        <p className="text-xs text-slate-500">No courses yet.</p>
+        <p className="text-xs text-muted">No courses yet.</p>
       ) : (
         <div className="flex flex-wrap gap-1.5">
           {byCourse.map(({ course, hereCount }) => {
@@ -369,21 +364,21 @@ function OfferedCourses({
                 onClick={() =>
                   setOpenCourse((c) => (c === course ? null : course))
                 }
-                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition ${
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition focus-ring ${
                   selected
-                    ? "border-emerald-600 bg-emerald-600 text-white"
+                    ? "border-brand bg-brand text-white"
                     : hereCount > 0
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-900 hover:border-emerald-400"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                      ? "border-[var(--status-here-border)] bg-[var(--status-here-bg)] text-[var(--status-here-ink)]"
+                      : "border-border bg-surface text-ink hover:border-slate-300"
                 }`}
               >
                 <span className="max-w-[9rem] truncate">{course}</span>
                 {hereCount > 0 ? (
                   <span
-                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
+                    className={`rounded px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
                       selected
                         ? "bg-white/20 text-white"
-                        : "bg-emerald-600 text-white"
+                        : "bg-brand text-white"
                     }`}
                   >
                     {hereCount}
@@ -396,16 +391,16 @@ function OfferedCourses({
       )}
 
       {active ? (
-        <ul className="flex flex-wrap gap-1.5 rounded-xl border border-slate-200 bg-white p-2">
+        <ul className="flex flex-wrap gap-1.5 rounded-lg border border-border bg-surface p-2">
           {active.tutors.map((t) => {
             const here = hereIds.has(t.id);
             return (
               <li
                 key={t.id}
-                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium ${
                   here
-                    ? "bg-emerald-600 text-white"
-                    : "bg-slate-100 text-slate-600"
+                    ? "bg-[var(--status-here-bg)] text-[var(--status-here-ink)]"
+                    : "bg-bg text-muted"
                 }`}
               >
                 <span className="max-w-[10rem] truncate">{t.name}</span>
@@ -456,11 +451,9 @@ function TutorMetaEditor({
     notes !== (row.notes || "");
 
   return (
-    <div className="space-y-3 rounded-xl bg-black/10 p-3">
+    <div className="space-y-3 rounded-lg bg-bg p-3">
       <label className="block">
-        <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-emerald-100/80">
-          Role
-        </span>
+        <span className="mb-1 block text-xs font-medium text-muted">Role</span>
         <select
           value={
             ROLE_OPTIONS.includes(role as (typeof ROLE_OPTIONS)[number])
@@ -469,17 +462,17 @@ function TutorMetaEditor({
           }
           onChange={(e) => setRole(e.target.value)}
           disabled={disabled}
-          className="w-full rounded-lg border-0 bg-white/15 px-2.5 py-2 text-sm text-white outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          className="input-field"
         >
           {ROLE_OPTIONS.map((r) => (
-            <option key={r} value={r} className="text-slate-900">
+            <option key={r} value={r}>
               {r}
             </option>
           ))}
         </select>
       </label>
       <label className="block">
-        <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-emerald-100/80">
+        <span className="mb-1 block text-xs font-medium text-muted">
           Comment
         </span>
         <textarea
@@ -488,7 +481,7 @@ function TutorMetaEditor({
           onChange={(e) => setNotes(e.target.value)}
           disabled={disabled}
           rows={2}
-          className="w-full resize-y rounded-lg border-0 bg-white/15 px-2.5 py-2 text-sm text-white placeholder:text-emerald-100/50 outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          className="input-field min-h-[4rem] resize-y"
           placeholder="Optional note — exports to Excel Notes"
         />
       </label>
@@ -497,7 +490,7 @@ function TutorMetaEditor({
           type="button"
           disabled={disabled}
           onClick={() => onSave(row.id, { role, notes })}
-          className="inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-white/20 text-sm font-semibold hover:bg-white/30 disabled:opacity-60"
+          className="btn-primary w-full min-h-10"
         >
           Save comment
         </button>

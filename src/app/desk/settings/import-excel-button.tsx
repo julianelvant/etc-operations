@@ -42,11 +42,9 @@ export function ImportExcelHistoryButton() {
   }
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5">
-      <h2 className="font-display text-lg font-semibold text-slate-900">
-        Excel history
-      </h2>
-      <p className="mt-1 text-sm text-slate-600">
+    <div className="rounded-xl border border-border bg-surface p-5">
+      <h2 className="text-base font-semibold text-ink">Excel history</h2>
+      <p className="mt-1 text-sm text-muted">
         Load Sep 14–18 attendance from the committed template workbook into
         Supabase. Safe to re-run — duplicate date + tutor + time-in rows are
         skipped.
@@ -55,17 +53,23 @@ export function ImportExcelHistoryButton() {
         type="button"
         disabled={busy}
         onClick={() => void runImport()}
-        className="mt-4 inline-flex min-h-11 items-center rounded-full bg-emerald-600 px-5 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-60"
+        className="btn-primary mt-4"
       >
         {busy ? "Importing…" : "Import Excel history"}
       </button>
       {message ? (
-        <p className="mt-3 text-sm text-emerald-800" role="status">
+        <p
+          className="mt-3 text-sm text-[var(--status-here-ink)]"
+          role="status"
+        >
           {message}
         </p>
       ) : null}
       {error ? (
-        <p className="mt-3 text-sm text-rose-700" role="alert">
+        <p
+          className="mt-3 text-sm text-[var(--status-late-ink)]"
+          role="alert"
+        >
           {error}
         </p>
       ) : null}

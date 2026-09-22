@@ -239,33 +239,28 @@ export function DayCalendar({
 
   return (
     <section className="space-y-3" aria-labelledby="day-calendar-heading">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Full day
-          </p>
-          <h2
-            id="day-calendar-heading"
-            className="font-display text-xl font-semibold text-slate-900"
-          >
-            Today&apos;s calendar
-          </h2>
-        </div>
-        <p className="text-sm tabular-nums text-slate-500">
-          {blocks.length} block{blocks.length === 1 ? "" : "s"}
+      <div>
+        <h2
+          id="day-calendar-heading"
+          className="font-display text-xl font-semibold text-ink"
+        >
+          Today&apos;s calendar
+        </h2>
+        <p className="mt-0.5 text-sm text-muted">
+          {blocks.length} block{blocks.length === 1 ? "" : "s"} on the timeline
         </p>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+      <div className="overflow-x-auto surface-panel">
         <div
           className="relative"
           style={{ height: heightPx + 24, minWidth: gridWidthPx + 64 }}
         >
-          <div className="absolute inset-y-0 left-0 z-10 w-16 border-r border-slate-100 bg-slate-50/95 pt-3">
+          <div className="absolute inset-y-0 left-0 z-10 w-16 border-r border-border bg-bg pt-3">
             {ticks.map((m) => (
               <div
                 key={m}
-                className="absolute right-2 -translate-y-1/2 text-[11px] font-medium tabular-nums text-slate-500"
+                className="absolute right-2 -translate-y-1/2 text-[11px] font-medium tabular-nums text-muted"
                 style={{ top: 12 + (m - rangeStart) * TIMELINE_PX_PER_MIN }}
               >
                 {minutesLabel(m)}
@@ -281,7 +276,7 @@ export function DayCalendar({
               <div
                 key={`line-${m}`}
                 className={`absolute left-0 right-0 border-t ${
-                  m % 60 === 0 ? "border-slate-200" : "border-slate-100"
+                  m % 60 === 0 ? "border-border" : "border-slate-100"
                 }`}
                 style={{ top: 12 + (m - rangeStart) * TIMELINE_PX_PER_MIN }}
               />
@@ -312,10 +307,10 @@ export function DayCalendar({
 
               const tone =
                 b.status === "here"
-                  ? "border-emerald-600 bg-emerald-600 text-white"
+                  ? "border-[var(--status-here-border)] bg-[var(--status-here-bg)] text-[var(--status-here-ink)]"
                   : b.status === "done"
-                    ? "border-slate-200 bg-slate-50 text-slate-800"
-                    : "border-emerald-200 bg-emerald-50 text-slate-900";
+                    ? "border-border bg-bg text-ink"
+                    : "border-border bg-surface text-ink";
 
               const statusLabel =
                 b.status === "here"
@@ -327,7 +322,7 @@ export function DayCalendar({
               return (
                 <div
                   key={b.key}
-                  className={`absolute overflow-hidden rounded-xl border px-3 py-2 shadow-sm ${tone}`}
+                  className={`absolute overflow-hidden rounded-lg border px-3 py-2 ${tone}`}
                   style={{ top, height, left: leftPx, width: widthPx }}
                   title={`${b.name} · ${formatShiftRange(b.shiftLabel)}`}
                   onContextMenu={(e) => {
@@ -342,24 +337,12 @@ export function DayCalendar({
                         {b.name}
                       </p>
                       {statusLabel ? (
-                        <span
-                          className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                            b.status === "here"
-                              ? "bg-white/20 text-white"
-                              : "bg-slate-200 text-slate-600"
-                          }`}
-                        >
+                        <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-brand/10 text-brand-ink">
                           {statusLabel}
                         </span>
                       ) : null}
                     </div>
-                    <p
-                      className={`truncate whitespace-nowrap text-xs tabular-nums leading-snug ${
-                        b.status === "here"
-                          ? "text-emerald-50"
-                          : "text-slate-600"
-                      }`}
-                    >
+                    <p className="truncate whitespace-nowrap text-xs tabular-nums leading-snug text-muted">
                       {formatShiftRange(b.shiftLabel)}
                       {b.timeInLabel ? ` · in ${b.timeInLabel}` : ""}
                     </p>
@@ -368,7 +351,7 @@ export function DayCalendar({
                         type="button"
                         disabled={!!pending}
                         onClick={() => onCheckIn?.(b.tutor!, b.shiftLabel)}
-                        className="mt-auto inline-flex min-h-8 shrink-0 items-center justify-center rounded-md bg-emerald-600 px-2 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-60"
+                        className="btn-primary mt-auto min-h-8 shrink-0 px-2 text-xs"
                       >
                         Check in
                       </button>
