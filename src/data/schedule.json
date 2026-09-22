@@ -3,16 +3,7 @@
   "timezone": "Asia/Beirut",
   "days": {
     "monday": {
-      "13:00-14:00": [
-        {
-          "name": "Josee Korkomaz",
-          "courses": [
-            "EECE 210",
-            "MECH 230",
-            "MECH 310",
-            "CIVE 210"
-          ]
-        },
+      "13:00-15:00": [
         {
           "name": "Charbel Abou Younes",
           "courses": [
@@ -23,34 +14,36 @@
           ]
         },
         {
+          "name": "Josee Korkomaz",
+          "courses": [
+            "CIVE 210",
+            "EECE 210",
+            "MECH 230",
+            "MECH 310"
+          ]
+        },
+        {
+          "name": "Zaynab Moussawi",
+          "courses": [
+            "CHEN 311",
+            "CIVE 210",
+            "EECE 210",
+            "MECH 310",
+            "PHYS 210"
+          ]
+        }
+      ],
+      "13:20-15:20": [
+        {
           "name": "Mohamed Mahmoud Chebbo",
           "courses": [
             "EECE 210",
             "EECE 380",
             "PHYS 210"
           ]
-        },
-        {
-          "name": "Zaynab Moussawi",
-          "courses": [
-            "EECE 210",
-            "MECH 310",
-            "CHEN 311",
-            "PHYS 210",
-            "CIVE 210"
-          ]
         }
       ],
       "14:00-15:00": [
-        {
-          "name": "Josee Korkomaz",
-          "courses": [
-            "EECE 210",
-            "MECH 230",
-            "MECH 310",
-            "CIVE 210"
-          ]
-        },
         {
           "name": "Charbel Attieh",
           "courses": [
@@ -62,63 +55,19 @@
           ]
         },
         {
-          "name": "Charbel Abou Younes",
-          "courses": [
-            "EECE 210",
-            "EECE 310",
-            "EECE 320",
-            "EECE 380"
-          ]
-        },
-        {
           "name": "George Bou Saba",
           "courses": [
+            "CHEN 311",
+            "CHEN 351/MECH 430",
+            "CIVE 210",
             "EECE 210",
             "EECE 312",
+            "MECH 201",
             "MECH 230",
             "MECH 310",
             "MECH 414",
-            "CIVE 210",
-            "CHEN 311",
-            "CHEN 351/MECH 430",
             "PHYS 210",
-            "PHYS 211",
-            "MECH 201"
-          ]
-        },
-        {
-          "name": "Julia Choucair",
-          "courses": [
-            "CHEN 311",
-            "CHEN 314",
-            "CHEN 351/MECH 430",
-            "PHYS 210"
-          ]
-        },
-        {
-          "name": "Majd Shatila",
-          "courses": [
-            "EECE 210",
-            "EECE 320",
-            "PHYS 210"
-          ]
-        },
-        {
-          "name": "Mohamed Mahmoud Chebbo",
-          "courses": [
-            "EECE 210",
-            "EECE 380",
-            "PHYS 210"
-          ]
-        },
-        {
-          "name": "Zaynab Moussawi",
-          "courses": [
-            "EECE 210",
-            "MECH 310",
-            "CHEN 311",
-            "PHYS 210",
-            "CIVE 210"
+            "PHYS 211"
           ]
         },
         {
@@ -129,38 +78,7 @@
           ]
         }
       ],
-      "15:00-16:00": [
-        {
-          "name": "Amir Darwich",
-          "courses": [
-            "EECE 210",
-            "EECE 310",
-            "EECE 380",
-            "PHYS 210"
-          ]
-        },
-        {
-          "name": "Josee Korkomaz",
-          "courses": [
-            "EECE 210",
-            "MECH 230",
-            "MECH 310",
-            "CIVE 210"
-          ]
-        },
-        {
-          "name": "Jad Al Hayek",
-          "courses": [
-            "EECE 210",
-            "EECE 312",
-            "MECH 230",
-            "MECH 310",
-            "MECH 414",
-            "CIVE 210",
-            "CHEN 351/MECH 430",
-            "MECH 201"
-          ]
-        },
+      "14:00-16:00": [
         {
           "name": "Julia Choucair",
           "courses": [
@@ -169,7 +87,9 @@
             "CHEN 351/MECH 430",
             "PHYS 210"
           ]
-        },
+        }
+      ],
+      "14:00-17:00": [
         {
           "name": "Majd Shatila",
           "courses": [
@@ -177,59 +97,9 @@
             "EECE 320",
             "PHYS 210"
           ]
-        },
-        {
-          "name": "Mohamed Mahmoud Chebbo",
-          "courses": [
-            "EECE 210",
-            "EECE 380",
-            "PHYS 210"
-          ]
-        },
-        {
-          "name": "Maykel Tohme",
-          "courses": [
-            "EECE 210",
-            "EECE 312",
-            "MECH 230",
-            "MECH 310",
-            "CIVE 210",
-            "CHEN 311",
-            "PHYS 211"
-          ]
-        },
-        {
-          "name": "Majd Jaffal",
-          "courses": [
-            "EECE 210",
-            "MECH 310",
-            "CIVE 210",
-            "CHEN 351/MECH 430",
-            "MECH 201"
-          ]
-        },
-        {
-          "name": "Issa al agha",
-          "courses": [
-            "EECE 210",
-            "CIVE 210",
-            "PHYS 211",
-            "MECH 201"
-          ]
-        },
-        {
-          "name": "Rami Chahine",
-          "courses": [
-            "EECE 210",
-            "EECE 310",
-            "EECE 312",
-            "EECE 320",
-            "EECE 380",
-            "PHYS 210"
-          ]
         }
       ],
-      "16:00-17:00": [
+      "15:00-17:00": [
         {
           "name": "Amir Darwich",
           "courses": [
@@ -240,55 +110,49 @@
           ]
         },
         {
+          "name": "Issa al agha",
+          "courses": [
+            "CIVE 210",
+            "EECE 210",
+            "MECH 201",
+            "PHYS 211"
+          ]
+        }
+      ],
+      "15:30-17:00": [
+        {
           "name": "Jad Al Hayek",
           "courses": [
-            "EECE 210",
-            "EECE 312",
-            "MECH 230",
-            "MECH 310",
-            "MECH 414",
-            "CIVE 210",
             "CHEN 351/MECH 430",
-            "MECH 201"
-          ]
-        },
-        {
-          "name": "Majd Shatila",
-          "courses": [
-            "EECE 210",
-            "EECE 320",
-            "PHYS 210"
-          ]
-        },
-        {
-          "name": "Maykel Tohme",
-          "courses": [
+            "CIVE 210",
             "EECE 210",
             "EECE 312",
+            "MECH 201",
             "MECH 230",
             "MECH 310",
-            "CIVE 210",
-            "CHEN 311",
-            "PHYS 211"
+            "MECH 414"
           ]
         },
         {
           "name": "Majd Jaffal",
           "courses": [
-            "EECE 210",
-            "MECH 310",
-            "CIVE 210",
             "CHEN 351/MECH 430",
-            "MECH 201"
+            "CIVE 210",
+            "EECE 210",
+            "MECH 201",
+            "MECH 310"
           ]
         },
         {
-          "name": "Issa al agha",
+          "name": "Maykel Tohme",
           "courses": [
-            "EECE 210",
+            "CHEN 311",
             "CIVE 210",
-            "PHYS 211",
-            "MECH 201"
+            "EECE 210",
+            "EECE 312",
+            "MECH 230",
+            "MECH 310",
+            "PHYS 211"
           ]
         },
         {
@@ -305,16 +169,7 @@
       ]
     },
     "tuesday": {
-      "13:00-14:00": [
-        {
-          "name": "Josee Korkomaz",
-          "courses": [
-            "EECE 210",
-            "MECH 230",
-            "MECH 310",
-            "CIVE 210"
-          ]
-        },
+      "13:00-15:00": [
         {
           "name": "Charbel Attieh",
           "courses": [
@@ -326,11 +181,12 @@
           ]
         },
         {
-          "name": "Mohamed Mahmoud Chebbo",
+          "name": "Josee Korkomaz",
           "courses": [
+            "CIVE 210",
             "EECE 210",
-            "EECE 380",
-            "PHYS 210"
+            "MECH 230",
+            "MECH 310"
           ]
         },
         {
@@ -341,15 +197,11 @@
           ]
         },
         {
-          "name": "Maykel Tohme",
+          "name": "Mohamed Mahmoud Chebbo",
           "courses": [
             "EECE 210",
-            "EECE 312",
-            "MECH 230",
-            "MECH 310",
-            "CIVE 210",
-            "CHEN 311",
-            "PHYS 211"
+            "EECE 380",
+            "PHYS 210"
           ]
         },
         {
@@ -357,49 +209,62 @@
           "courses": [
             "EECE 210",
             "EECE 320",
-            "PHYS 210",
-            "EECE 442"
+            "EECE 442",
+            "PHYS 210"
           ]
         },
         {
           "name": "Zaynab Moussawi",
           "courses": [
+            "CHEN 311",
+            "CIVE 210",
             "EECE 210",
             "MECH 310",
-            "CHEN 311",
-            "PHYS 210",
-            "CIVE 210"
+            "PHYS 210"
           ]
-        },
+        }
+      ],
+      "13:00-14:00": [
+        {
+          "name": "Maykel Tohme",
+          "courses": [
+            "CHEN 311",
+            "CIVE 210",
+            "EECE 210",
+            "EECE 312",
+            "MECH 230",
+            "MECH 310",
+            "PHYS 211"
+          ]
+        }
+      ],
+      "13:00-15:30": [
         {
           "name": "Ranim Khattar",
           "courses": [
             "CIVE 210",
-            "PHYS 211",
-            "MECH 201"
+            "MECH 201",
+            "PHYS 211"
           ]
         }
       ],
       "14:00-15:00": [
         {
-          "name": "Josee Korkomaz",
-          "courses": [
-            "EECE 210",
-            "MECH 230",
-            "MECH 310",
-            "CIVE 210"
-          ]
+          "name": "Jinan Saydeldine",
+          "courses": []
         },
         {
-          "name": "Charbel Attieh",
+          "name": "Majd Jaffal",
           "courses": [
+            "CHEN 351/MECH 430",
+            "CIVE 210",
             "EECE 210",
-            "EECE 310",
-            "EECE 320",
-            "EECE 380",
-            "EECE 442"
+            "MECH 201",
+            "MECH 310"
           ]
-        },
+        }
+      ],
+      "14:00-17:00": [
         {
           "name": "Kassem El Moussawi",
           "courses": [
@@ -409,67 +274,17 @@
             "EECE 320",
             "PHYS 210"
           ]
-        },
+        }
+      ],
+      "14:00-15:30": [
         {
           "name": "Jana Salman",
           "courses": [
+            "EECE 210",
             "EECE 310",
             "EECE 320",
             "EECE 380",
-            "EECE 210",
             "EECE 442"
-          ]
-        },
-        {
-          "name": "Mohamed Mahmoud Chebbo",
-          "courses": [
-            "EECE 210",
-            "EECE 380",
-            "PHYS 210"
-          ]
-        },
-        {
-          "name": "Lilly Jarir Al Riachy",
-          "courses": [
-            "CHEN 311",
-            "CHEN 314"
-          ]
-        },
-        {
-          "name": "Majd Jaffal",
-          "courses": [
-            "EECE 210",
-            "MECH 310",
-            "CIVE 210",
-            "CHEN 351/MECH 430",
-            "MECH 201"
-          ]
-        },
-        {
-          "name": "Nour Hammoud",
-          "courses": [
-            "EECE 210",
-            "EECE 320",
-            "PHYS 210",
-            "EECE 442"
-          ]
-        },
-        {
-          "name": "Zaynab Moussawi",
-          "courses": [
-            "EECE 210",
-            "MECH 310",
-            "CHEN 311",
-            "PHYS 210",
-            "CIVE 210"
-          ]
-        },
-        {
-          "name": "Ranim Khattar",
-          "courses": [
-            "CIVE 210",
-            "PHYS 211",
-            "MECH 201"
           ]
         },
         {
@@ -483,7 +298,7 @@
           ]
         }
       ],
-      "15:00-16:00": [
+      "15:00-17:00": [
         {
           "name": "Amir Darwich",
           "courses": [
@@ -491,26 +306,6 @@
             "EECE 310",
             "EECE 380",
             "PHYS 210"
-          ]
-        },
-        {
-          "name": "Kassem El Moussawi",
-          "courses": [
-            "EECE 210",
-            "EECE 310",
-            "EECE 312",
-            "EECE 320",
-            "PHYS 210"
-          ]
-        },
-        {
-          "name": "Jana Salman",
-          "courses": [
-            "EECE 310",
-            "EECE 320",
-            "EECE 380",
-            "EECE 210",
-            "EECE 442"
           ]
         },
         {
@@ -525,118 +320,41 @@
         {
           "name": "Lynn Hammoud",
           "courses": [
-            "EECE 210",
             "CIVE 210",
+            "EECE 210",
             "PHYS 210"
-          ]
-        },
-        {
-          "name": "Lilly Jarir Al Riachy",
-          "courses": [
-            "CHEN 311",
-            "CHEN 314"
-          ]
-        },
-        {
-          "name": "Nour Hammoud",
-          "courses": [
-            "EECE 210",
-            "EECE 320",
-            "PHYS 210",
-            "EECE 442"
-          ]
-        },
-        {
-          "name": "Ranim Khattar",
-          "courses": [
-            "CIVE 210",
-            "PHYS 211",
-            "MECH 201"
-          ]
-        },
-        {
-          "name": "Zeina El Zein",
-          "courses": [
-            "EECE 210",
-            "EECE 310",
-            "EECE 320",
-            "EECE 380",
-            "EECE 442"
           ]
         }
       ],
       "16:00-17:00": [
         {
-          "name": "Amir Darwich",
-          "courses": [
-            "EECE 210",
-            "EECE 310",
-            "EECE 380",
-            "PHYS 210"
-          ]
-        },
-        {
-          "name": "Kassem El Moussawi",
-          "courses": [
-            "EECE 210",
-            "EECE 310",
-            "EECE 312",
-            "EECE 320",
-            "PHYS 210"
-          ]
-        },
-        {
           "name": "Jad Al Hayek",
           "courses": [
+            "CHEN 351/MECH 430",
+            "CIVE 210",
             "EECE 210",
             "EECE 312",
+            "MECH 201",
             "MECH 230",
             "MECH 310",
-            "MECH 414",
-            "CIVE 210",
-            "CHEN 351/MECH 430",
-            "MECH 201"
-          ]
-        },
-        {
-          "name": "Julia Choucair",
-          "courses": [
-            "CHEN 311",
-            "CHEN 314",
-            "CHEN 351/MECH 430",
-            "PHYS 210"
-          ]
-        },
-        {
-          "name": "Lynn Hammoud",
-          "courses": [
-            "EECE 210",
-            "CIVE 210",
-            "PHYS 210"
-          ]
-        },
-        {
-          "name": "Lilly Jarir Al Riachy",
-          "courses": [
-            "CHEN 311",
-            "CHEN 314"
+            "MECH 414"
           ]
         },
         {
           "name": "Lea Hazimeh",
           "courses": [
-            "EECE 210",
-            "MECH 310",
-            "CIVE 210",
             "CHEN 311",
             "CHEN 314",
-            "CHEN 351/MECH 430"
+            "CHEN 351/MECH 430",
+            "CIVE 210",
+            "EECE 210",
+            "MECH 310"
           ]
         }
       ]
     },
     "wednesday": {
-      "13:00-14:00": [
+      "13:00-15:00": [
         {
           "name": "Charbel Abou Younes",
           "courses": [
@@ -645,16 +363,22 @@
             "EECE 320",
             "EECE 380"
           ]
-        },
+        }
+      ],
+      "13:00-14:00": [
         {
           "name": "Jana Salman",
           "courses": [
+            "EECE 210",
             "EECE 310",
             "EECE 320",
             "EECE 380",
-            "EECE 210",
             "EECE 442"
           ]
+        },
+        {
+          "name": "Yorgo Azie",
+          "courses": []
         },
         {
           "name": "Zeina El Zein",
@@ -669,104 +393,65 @@
       ],
       "14:00-15:00": [
         {
-          "name": "Charbel Abou Younes",
-          "courses": [
-            "EECE 210",
-            "EECE 310",
-            "EECE 320",
-            "EECE 380"
-          ]
+          "name": "Ali Sobh",
+          "courses": []
         },
         {
           "name": "George Bou Saba",
           "courses": [
+            "CHEN 311",
+            "CHEN 351/MECH 430",
+            "CIVE 210",
             "EECE 210",
             "EECE 312",
+            "MECH 201",
             "MECH 230",
             "MECH 310",
             "MECH 414",
-            "CIVE 210",
-            "CHEN 311",
-            "CHEN 351/MECH 430",
             "PHYS 210",
-            "PHYS 211",
-            "MECH 201"
-          ]
-        },
-        {
-          "name": "Lea Hazimeh",
-          "courses": [
-            "EECE 210",
-            "MECH 310",
-            "CIVE 210",
-            "CHEN 311",
-            "CHEN 314",
-            "CHEN 351/MECH 430"
+            "PHYS 211"
           ]
         }
       ],
-      "15:00-16:00": [
+      "14:00-16:00": [
         {
-          "name": "Jad Al Hayek",
+          "name": "Lea Hazimeh",
           "courses": [
-            "EECE 210",
-            "EECE 312",
-            "MECH 230",
-            "MECH 310",
-            "MECH 414",
-            "CIVE 210",
+            "CHEN 311",
+            "CHEN 314",
             "CHEN 351/MECH 430",
-            "MECH 201"
+            "CIVE 210",
+            "EECE 210",
+            "MECH 310"
+          ]
+        }
+      ],
+      "15:00-17:00": [
+        {
+          "name": "Issa al agha",
+          "courses": [
+            "CIVE 210",
+            "EECE 210",
+            "MECH 201",
+            "PHYS 211"
           ]
         },
         {
           "name": "Lynn Hammoud",
           "courses": [
-            "EECE 210",
             "CIVE 210",
+            "EECE 210",
             "PHYS 210"
-          ]
-        },
-        {
-          "name": "Maykel Tohme",
-          "courses": [
-            "EECE 210",
-            "EECE 312",
-            "MECH 230",
-            "MECH 310",
-            "CIVE 210",
-            "CHEN 311",
-            "PHYS 211"
-          ]
-        },
-        {
-          "name": "Lea Hazimeh",
-          "courses": [
-            "EECE 210",
-            "MECH 310",
-            "CIVE 210",
-            "CHEN 311",
-            "CHEN 314",
-            "CHEN 351/MECH 430"
           ]
         },
         {
           "name": "Majd Jaffal",
           "courses": [
-            "EECE 210",
-            "MECH 310",
-            "CIVE 210",
             "CHEN 351/MECH 430",
-            "MECH 201"
-          ]
-        },
-        {
-          "name": "Issa al agha",
-          "courses": [
-            "EECE 210",
             "CIVE 210",
-            "PHYS 211",
-            "MECH 201"
+            "EECE 210",
+            "MECH 201",
+            "MECH 310"
           ]
         },
         {
@@ -781,114 +466,73 @@
           ]
         }
       ],
-      "16:00-17:00": [
+      "15:30-17:00": [
         {
           "name": "Jad Al Hayek",
           "courses": [
+            "CHEN 351/MECH 430",
+            "CIVE 210",
             "EECE 210",
             "EECE 312",
+            "MECH 201",
             "MECH 230",
             "MECH 310",
-            "MECH 414",
-            "CIVE 210",
-            "CHEN 351/MECH 430",
-            "MECH 201"
-          ]
-        },
-        {
-          "name": "Lynn Hammoud",
-          "courses": [
-            "EECE 210",
-            "CIVE 210",
-            "PHYS 210"
+            "MECH 414"
           ]
         },
         {
           "name": "Maykel Tohme",
           "courses": [
+            "CHEN 311",
+            "CIVE 210",
             "EECE 210",
             "EECE 312",
             "MECH 230",
             "MECH 310",
-            "CIVE 210",
-            "CHEN 311",
             "PHYS 211"
           ]
         },
         {
-          "name": "Lea Hazimeh",
-          "courses": [
-            "EECE 210",
-            "MECH 310",
-            "CIVE 210",
-            "CHEN 311",
-            "CHEN 314",
-            "CHEN 351/MECH 430"
-          ]
-        },
-        {
-          "name": "Majd Jaffal",
-          "courses": [
-            "EECE 210",
-            "MECH 310",
-            "CIVE 210",
-            "CHEN 351/MECH 430",
-            "MECH 201"
-          ]
-        },
-        {
-          "name": "Issa al agha",
-          "courses": [
-            "EECE 210",
-            "CIVE 210",
-            "PHYS 211",
-            "MECH 201"
-          ]
-        },
-        {
-          "name": "Rami Chahine",
-          "courses": [
-            "EECE 210",
-            "EECE 310",
-            "EECE 312",
-            "EECE 320",
-            "EECE 380",
-            "PHYS 210"
-          ]
+          "name": "Roudy Haddad",
+          "courses": []
         }
       ]
     },
     "thursday": {
-      "13:00-14:00": [
-        {
-          "name": "Charbel Gebrael",
-          "courses": [
-            "EECE 210",
-            "MECH 230",
-            "CIVE 210",
-            "PHYS 211",
-            "MECH 201"
-          ]
-        },
+      "13:00-15:00": [
         {
           "name": "Nour Hammoud",
           "courses": [
             "EECE 210",
             "EECE 320",
-            "PHYS 210",
-            "EECE 442"
+            "EECE 442",
+            "PHYS 210"
           ]
-        },
+        }
+      ],
+      "13:00-16:00": [
+        {
+          "name": "Charbel Gebrael",
+          "courses": [
+            "CIVE 210",
+            "EECE 210",
+            "MECH 201",
+            "MECH 230",
+            "PHYS 211"
+          ]
+        }
+      ],
+      "13:30-15:30": [
         {
           "name": "Ranim Khattar",
           "courses": [
             "CIVE 210",
-            "PHYS 211",
-            "MECH 201"
+            "MECH 201",
+            "PHYS 211"
           ]
         }
       ],
-      "14:00-15:00": [
+      "14:00-16:00": [
         {
           "name": "Kassem El Moussawi",
           "courses": [
@@ -898,50 +542,17 @@
             "EECE 320",
             "PHYS 210"
           ]
-        },
-        {
-          "name": "Charbel Gebrael",
-          "courses": [
-            "EECE 210",
-            "MECH 230",
-            "CIVE 210",
-            "PHYS 211",
-            "MECH 201"
-          ]
-        },
+        }
+      ],
+      "14:00-15:00": [
         {
           "name": "Jana Salman",
           "courses": [
+            "EECE 210",
             "EECE 310",
             "EECE 320",
             "EECE 380",
-            "EECE 210",
             "EECE 442"
-          ]
-        },
-        {
-          "name": "Majd Shatila",
-          "courses": [
-            "EECE 210",
-            "EECE 320",
-            "PHYS 210"
-          ]
-        },
-        {
-          "name": "Nour Hammoud",
-          "courses": [
-            "EECE 210",
-            "EECE 320",
-            "PHYS 210",
-            "EECE 442"
-          ]
-        },
-        {
-          "name": "Ranim Khattar",
-          "courses": [
-            "CIVE 210",
-            "PHYS 211",
-            "MECH 201"
           ]
         },
         {
@@ -955,36 +566,7 @@
           ]
         }
       ],
-      "15:00-16:00": [
-        {
-          "name": "Amir Darwich",
-          "courses": [
-            "EECE 210",
-            "EECE 310",
-            "EECE 380",
-            "PHYS 210"
-          ]
-        },
-        {
-          "name": "Kassem El Moussawi",
-          "courses": [
-            "EECE 210",
-            "EECE 310",
-            "EECE 312",
-            "EECE 320",
-            "PHYS 210"
-          ]
-        },
-        {
-          "name": "Charbel Gebrael",
-          "courses": [
-            "EECE 210",
-            "MECH 230",
-            "CIVE 210",
-            "PHYS 211",
-            "MECH 201"
-          ]
-        },
+      "14:30-16:00": [
         {
           "name": "Majd Shatila",
           "courses": [
@@ -992,25 +574,9 @@
             "EECE 320",
             "PHYS 210"
           ]
-        },
-        {
-          "name": "Ranim Khattar",
-          "courses": [
-            "CIVE 210",
-            "PHYS 211",
-            "MECH 201"
-          ]
-        },
-        {
-          "name": "Lynn Hammoud",
-          "courses": [
-            "EECE 210",
-            "CIVE 210",
-            "PHYS 210"
-          ]
         }
       ],
-      "16:00-17:00": [
+      "15:00-17:00": [
         {
           "name": "Amir Darwich",
           "courses": [
@@ -1019,50 +585,44 @@
             "EECE 380",
             "PHYS 210"
           ]
-        },
-        {
-          "name": "Jad Al Hayek",
-          "courses": [
-            "EECE 210",
-            "EECE 312",
-            "MECH 230",
-            "MECH 310",
-            "MECH 414",
-            "CIVE 210",
-            "CHEN 351/MECH 430",
-            "MECH 201"
-          ]
-        },
+        }
+      ],
+      "15:30-17:00": [
         {
           "name": "Lynn Hammoud",
           "courses": [
-            "EECE 210",
             "CIVE 210",
+            "EECE 210",
             "PHYS 210"
+          ]
+        }
+      ],
+      "16:00-17:00": [
+        {
+          "name": "Jad Al Hayek",
+          "courses": [
+            "CHEN 351/MECH 430",
+            "CIVE 210",
+            "EECE 210",
+            "EECE 312",
+            "MECH 201",
+            "MECH 230",
+            "MECH 310",
+            "MECH 414"
           ]
         }
       ]
     },
     "friday": {
-      "13:00-14:00": [
+      "13:00-15:00": [
         {
           "name": "Charbel Gebrael",
           "courses": [
-            "EECE 210",
-            "MECH 230",
             "CIVE 210",
-            "PHYS 211",
-            "MECH 201"
-          ]
-        },
-        {
-          "name": "Jana Salman",
-          "courses": [
-            "EECE 310",
-            "EECE 320",
-            "EECE 380",
             "EECE 210",
-            "EECE 442"
+            "MECH 201",
+            "MECH 230",
+            "PHYS 211"
           ]
         },
         {
@@ -1070,6 +630,18 @@
           "courses": [
             "EECE 320",
             "PHYS 211"
+          ]
+        }
+      ],
+      "13:00-14:00": [
+        {
+          "name": "Jana Salman",
+          "courses": [
+            "EECE 210",
+            "EECE 310",
+            "EECE 320",
+            "EECE 380",
+            "EECE 442"
           ]
         },
         {
@@ -1085,38 +657,23 @@
       ],
       "14:00-15:00": [
         {
-          "name": "Charbel Gebrael",
-          "courses": [
-            "EECE 210",
-            "MECH 230",
-            "CIVE 210",
-            "PHYS 211",
-            "MECH 201"
-          ]
-        },
-        {
           "name": "George Bou Saba",
           "courses": [
+            "CHEN 311",
+            "CHEN 351/MECH 430",
+            "CIVE 210",
             "EECE 210",
             "EECE 312",
+            "MECH 201",
             "MECH 230",
             "MECH 310",
             "MECH 414",
-            "CIVE 210",
-            "CHEN 311",
-            "CHEN 351/MECH 430",
             "PHYS 210",
-            "PHYS 211",
-            "MECH 201"
-          ]
-        },
-        {
-          "name": "Yara Sleem",
-          "courses": [
-            "EECE 320",
             "PHYS 211"
           ]
-        },
+        }
+      ],
+      "14:00-16:00": [
         {
           "name": "Rami Chahine",
           "courses": [
@@ -1131,26 +688,19 @@
       ],
       "15:00-16:00": [
         {
-          "name": "Rami Chahine",
-          "courses": [
-            "EECE 210",
-            "EECE 310",
-            "EECE 312",
-            "EECE 320",
-            "EECE 380",
-            "PHYS 210"
-          ]
+          "name": "Jad Mchaimech",
+          "courses": []
         }
       ],
       "16:00-17:00": [
         {
           "name": "Majd Jaffal",
           "courses": [
-            "EECE 210",
-            "MECH 310",
-            "CIVE 210",
             "CHEN 351/MECH 430",
-            "MECH 201"
+            "CIVE 210",
+            "EECE 210",
+            "MECH 201",
+            "MECH 310"
           ]
         }
       ]

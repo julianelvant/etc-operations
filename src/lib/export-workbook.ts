@@ -70,18 +70,8 @@ const TUTOREE_HEADERS = [
   "notes",
 ] as const;
 
-const SCHEDULE_HEADERS = [
-  "Time",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-] as const;
-
 const TUTOR_WIDTHS = [12, 22, 16, 14, 14, 14, 10, 28];
 const TUTOREE_WIDTHS = [12, 18, 24, 10, 10, 10, 18, 22, 24];
-const SCHEDULE_WIDTHS = [14, 28, 28, 28, 28, 28];
 
 function tutorNameFromJoin(
   tutors:
@@ -123,45 +113,68 @@ function writeDaySeparator(ws: ExcelJS.Worksheet, rowIdx: number, colCount: numb
 
 function buildScheduleSheet(wb: ExcelJS.Workbook) {
   const ws = wb.addWorksheet("General schedule");
-  SCHEDULE_WIDTHS.forEach((w, i) => {
-    ws.getColumn(i + 1).width = w;
-  });
+  // Day-stacked layout — irregular shifts (e.g. 1:20–3:20) don't fit a
+  // shared hourly grid without empty/misleading cells.
+  ws.getColumn(1).width = 18;
+  ws.getColumn(2).width = 56;
+  ws.getColumn(3).width = 42;
 
   const title =
     schedule.title || "ETC General Tutoring Schedule (All Courses)";
   ws.getCell(1, 1).value = title;
   ws.getCell(1, 1).font = { name: "Calibri", size: 14, bold: true };
-  ws.mergeCells(1, 1, 1, 6);
-
-  const header = ws.getRow(2);
-  header.values = [...SCHEDULE_HEADERS];
-  styleHeaderRow(header, 6);
-  header.commit();
+  ws.mergeCells(1, 1, 1, 3);
 
   const days = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
-  const allSlots = new Set<string>();
-  for (const d of days) {
-    Object.keys(schedule.days[d] ?? {}).forEach((s) => allSlots.add(s));
-  }
-  const slots = Array.from(allSlots).sort();
+  const dayLabels = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
-  for (let i = 0; i < slots.length; i++) {
-    const slot = slots[i];
-    const row = ws.getRow(3 + i);
-    row.getCell(1).value = slotLabel(slot);
-    for (let c = 0; c < days.length; c++) {
-      const tutors = schedule.days[days[c]]?.[slot] ?? [];
-      row.getCell(c + 2).value = tutors
-        .map((t) =>
-          t.courses.length
-            ? `${t.name} (${t.courses.join(", ")})`
-            : t.name,
-        )
-        .join("\n");
-      row.getCell(c + 2).alignment = { wrapText: true, vertical: "top" };
+  let rowIdx = 3;
+  for (let d = 0; d < days.length; d++) {
+    const dayKey = days[d];
+    const dayHeader = ws.getRow(rowIdx);
+    dayHeader.getCell(1).value = dayLabels[d];
+    dayHeader.getCell(1).font = {
+      name: "Calibri",
+      size: 12,
+      bold: true,
+      color: { argb: "FFFFFFFF" },
+    };
+    for (let c = 1; c <= 3; c++) {
+      dayHeader.getCell(c).fill = HEADER_FILL;
     }
-    row.font = { name: "Calibri", size: 11 };
-    row.commit();
+    dayHeader.commit();
+    rowIdx += 1;
+
+    const colHeader = ws.getRow(rowIdx);
+    colHeader.values = ["Shift", "Tutor", "Courses"];
+    styleHeaderRow(colHeader, 3);
+    colHeader.commit();
+    rowIdx += 1;
+
+    const shifts = Object.keys(schedule.days[dayKey] ?? {}).sort((a, b) => {
+      const [as, ae] = a.split("-");
+      const [bs] = b.split("-");
+      const am = Number(as.split(":")[0]) * 60 + Number(as.split(":")[1]);
+      const bm = Number(bs.split(":")[0]) * 60 + Number(bs.split(":")[1]);
+      if (am !== bm) return am - bm;
+      const aem = Number(ae.split(":")[0]) * 60 + Number(ae.split(":")[1]);
+      const bem = Number(b.split("-")[1].split(":")[0]) * 60 + Number(b.split("-")[1].split(":")[1]);
+      return aem - bem;
+    });
+
+    for (const slot of shifts) {
+      const tutors = schedule.days[dayKey]?.[slot] ?? [];
+      for (const t of tutors) {
+        const row = ws.getRow(rowIdx);
+        row.getCell(1).value = slotLabel(slot);
+        row.getCell(2).value = t.name;
+        row.getCell(3).value = t.courses.join(", ");
+        row.font = { name: "Calibri", size: 11 };
+        row.commit();
+        rowIdx += 1;
+      }
+    }
+    rowIdx += 1; // blank between days
   }
 }
 
