@@ -1,6 +1,5 @@
 import ExcelJS from "exceljs";
-import fs from "fs/promises";
-import path from "path";
+import JSZip from "jszip";
 import { createClient } from "@/lib/supabase/server";
 import { schedule, slotLabel, TIMEZONE } from "@/lib/schedule";
 
@@ -42,6 +41,12 @@ const BLUE_SEP: ExcelJS.Fill = {
   fgColor: { argb: "FF0070C0" },
 };
 
+const HEADER_FILL: ExcelJS.Fill = {
+  type: "pattern",
+  pattern: "solid",
+  fgColor: { argb: "FF2C3E50" },
+};
+
 const TUTOR_HEADERS = [
   "date",
   "tutor name",
@@ -65,82 +70,18 @@ const TUTOREE_HEADERS = [
   "notes",
 ] as const;
 
-const TUTOR_WIDTHS = [21, 25.14, 22.14, 16.86, 25.57, 17.43, 15, 33.43];
-const TUTOREE_WIDTHS = [24, 15, 21, 22, 21, 10, 22, 28, 34];
+const SCHEDULE_HEADERS = [
+  "Time",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+] as const;
 
-async function loadTemplateWorkbook(): Promise<ExcelJS.Workbook> {
-  const file = path.join(
-    process.cwd(),
-    "src",
-    "data",
-    "attendance-template.xlsx",
-  );
-  const buf = await fs.readFile(file);
-  const wb = new ExcelJS.Workbook();
-  await wb.xlsx.load(buf as unknown as ExcelJS.Buffer);
-  return wb;
-}
-
-function fillScheduleSheet(ws: ExcelJS.Worksheet) {
-  const title =
-    schedule.title || "ETC General Tutoring Schedule (All Courses)";
-  ws.getCell(1, 1).value = title;
-
-  const days = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
-  const allSlots = new Set<string>();
-  for (const d of days) {
-    Object.keys(schedule.days[d] ?? {}).forEach((s) => allSlots.add(s));
-  }
-  const slots = Array.from(allSlots).sort();
-
-  for (let i = 0; i < slots.length; i++) {
-    const rowIdx = 3 + i;
-    const slot = slots[i];
-    const row = ws.getRow(rowIdx);
-    row.getCell(1).value = slotLabel(slot);
-    for (let c = 0; c < days.length; c++) {
-      const tutors = schedule.days[days[c]]?.[slot] ?? [];
-      row.getCell(c + 2).value = tutors
-        .map((t) =>
-          t.courses.length
-            ? `${t.name} (${t.courses.join(", ")})`
-            : t.name,
-        )
-        .join("\n");
-    }
-    row.commit();
-  }
-}
-
-/**
- * Drop and recreate a data sheet. ExcelJS spliceRows leaves stale rows/tables
- * that produce files Excel cannot open.
- */
-function replaceSheet(
-  wb: ExcelJS.Workbook,
-  name: string,
-  widths: number[],
-): ExcelJS.Worksheet {
-  const existing = wb.getWorksheet(name);
-  if (existing) {
-    try {
-      const tables =
-        (existing as unknown as { tables?: Record<string, unknown> }).tables ??
-        {};
-      for (const key of Object.keys(tables)) {
-        existing.removeTable(key);
-      }
-    } catch {
-      /* ignore */
-    }
-    wb.removeWorksheet(existing.id);
-  }
-  const ws = wb.addWorksheet(name);
-  widths.forEach((w, i) => {
-    ws.getColumn(i + 1).width = w;
-  });
-  return ws;
-}
+const TUTOR_WIDTHS = [12, 22, 16, 14, 14, 14, 10, 28];
+const TUTOREE_WIDTHS = [12, 18, 24, 10, 10, 10, 18, 22, 24];
+const SCHEDULE_WIDTHS = [14, 28, 28, 28, 28, 28];
 
 function tutorNameFromJoin(
   tutors:
@@ -152,6 +93,101 @@ function tutorNameFromJoin(
   if (!tutors) return "";
   if (Array.isArray(tutors)) return tutors[0]?.name ?? "";
   return tutors.name ?? "";
+}
+
+function styleHeaderRow(row: ExcelJS.Row, colCount: number) {
+  row.font = { name: "Calibri", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+  row.fill = HEADER_FILL;
+  for (let c = 1; c <= colCount; c++) {
+    row.getCell(c).fill = HEADER_FILL;
+    row.getCell(c).font = {
+      name: "Calibri",
+      size: 11,
+      bold: true,
+      color: { argb: "FFFFFFFF" },
+    };
+  }
+}
+
+function buildScheduleSheet(wb: ExcelJS.Workbook) {
+  const ws = wb.addWorksheet("General schedule");
+  SCHEDULE_WIDTHS.forEach((w, i) => {
+    ws.getColumn(i + 1).width = w;
+  });
+
+  const title =
+    schedule.title || "ETC General Tutoring Schedule (All Courses)";
+  ws.getCell(1, 1).value = title;
+  ws.getCell(1, 1).font = { name: "Calibri", size: 14, bold: true };
+  ws.mergeCells(1, 1, 1, 6);
+
+  const header = ws.getRow(2);
+  header.values = [...SCHEDULE_HEADERS];
+  styleHeaderRow(header, 6);
+  header.commit();
+
+  const days = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
+  const allSlots = new Set<string>();
+  for (const d of days) {
+    Object.keys(schedule.days[d] ?? {}).forEach((s) => allSlots.add(s));
+  }
+  const slots = Array.from(allSlots).sort();
+
+  for (let i = 0; i < slots.length; i++) {
+    const slot = slots[i];
+    const row = ws.getRow(3 + i);
+    row.getCell(1).value = slotLabel(slot);
+    for (let c = 0; c < days.length; c++) {
+      const tutors = schedule.days[days[c]]?.[slot] ?? [];
+      row.getCell(c + 2).value = tutors
+        .map((t) =>
+          t.courses.length
+            ? `${t.name} (${t.courses.join(", ")})`
+            : t.name,
+        )
+        .join("\n");
+      row.getCell(c + 2).alignment = { wrapText: true, vertical: "top" };
+    }
+    row.font = { name: "Calibri", size: 11 };
+    row.commit();
+  }
+}
+
+/**
+ * Excel Desktop rejects some ExcelJS packages that include empty ZIP
+ * directory entries and leftover Content_Types defaults (e.g. vml) with
+ * no matching parts. Rewrite the archive as files-only.
+ */
+async function sanitizeXlsxForExcel(buffer: Buffer): Promise<Buffer> {
+  const incoming = await JSZip.loadAsync(buffer);
+  const outgoing = new JSZip();
+
+  const names = Object.keys(incoming.files).sort();
+  for (const name of names) {
+    const entry = incoming.files[name];
+    if (!entry || entry.dir || name.endsWith("/")) continue;
+
+    let data = await entry.async("nodebuffer");
+    if (name === "[Content_Types].xml") {
+      // Drop unused Default Extension="vml" left by template-derived writes.
+      data = Buffer.from(
+        data
+          .toString("utf8")
+          .replace(/<Default[^>]*Extension="vml"[^>]*\/>/g, ""),
+        "utf8",
+      );
+    }
+    // createFolders:false avoids empty ZIP directory entries that Excel
+    // Desktop frequently reports as "file is corrupt".
+    outgoing.file(name, data, { createFolders: false });
+  }
+
+  const out = await outgoing.generateAsync({
+    type: "nodebuffer",
+    compression: "DEFLATE",
+    compressionOptions: { level: 6 },
+  });
+  return Buffer.from(out);
 }
 
 export async function buildAttendanceWorkbook(from: string, to: string) {
@@ -182,19 +218,23 @@ export async function buildAttendanceWorkbook(from: string, to: string) {
   if (aErr) throw new Error(aErr.message);
   if (vErr) throw new Error(vErr.message);
 
-  const wb = await loadTemplateWorkbook();
+  // Build from scratch — cloning the SharePoint attendance template via
+  // ExcelJS leaves slicer/#N/A names, vml Content_Types, and ZIP directory
+  // entries that Microsoft Excel reports as corrupt.
+  const wb = new ExcelJS.Workbook();
   wb.creator = "ETC Operations";
   wb.created = new Date();
+  wb.modified = new Date();
 
-  const sched = wb.getWorksheet("General schedule");
-  if (sched) fillScheduleSheet(sched);
+  buildScheduleSheet(wb);
 
-  // --- Tutors ---
-  const tutorsSheet = replaceSheet(wb, "Tutors", TUTOR_WIDTHS);
+  const tutorsSheet = wb.addWorksheet("Tutors");
+  TUTOR_WIDTHS.forEach((w, i) => {
+    tutorsSheet.getColumn(i + 1).width = w;
+  });
   const headerTutor = tutorsSheet.getRow(1);
-  // ExcelJS row.values is 0-indexed (index 0 = column A).
   headerTutor.values = [...TUTOR_HEADERS];
-  headerTutor.font = { name: "Calibri", size: 11 };
+  styleHeaderRow(headerTutor, TUTOR_HEADERS.length);
   headerTutor.commit();
 
   let lastDate = "";
@@ -208,11 +248,10 @@ export async function buildAttendanceWorkbook(from: string, to: string) {
     if (lastDate && lastDate !== row.attendance_date) {
       excelRowIdx += 1;
       const sep = tutorsSheet.getRow(excelRowIdx);
-      for (let c = 1; c <= 8; c++) {
+      for (let c = 1; c <= TUTOR_HEADERS.length; c++) {
         sep.getCell(c).value = null;
         sep.getCell(c).fill = BLUE_SEP;
       }
-      sep.font = { name: "Calibri", size: 11 };
       sep.commit();
     }
     lastDate = row.attendance_date;
@@ -239,11 +278,13 @@ export async function buildAttendanceWorkbook(from: string, to: string) {
     excelRow.commit();
   }
 
-  // --- Tutoree ---
-  const tutoree = replaceSheet(wb, "Tutoree", TUTOREE_WIDTHS);
+  const tutoree = wb.addWorksheet("Tutoree");
+  TUTOREE_WIDTHS.forEach((w, i) => {
+    tutoree.getColumn(i + 1).width = w;
+  });
   const headerVisit = tutoree.getRow(1);
   headerVisit.values = [...TUTOREE_HEADERS];
-  headerVisit.font = { name: "Calibri", size: 11 };
+  styleHeaderRow(headerVisit, TUTOREE_HEADERS.length);
   headerVisit.commit();
 
   let r = 1;
@@ -254,10 +295,12 @@ export async function buildAttendanceWorkbook(from: string, to: string) {
     r += 1;
     const email = (row.student_email ?? "").trim();
     const excelRow = tutoree.getRow(r);
+    // Plain text email (no mailto hyperlink) — hyperlink rels from ExcelJS
+    // have triggered Excel repair dialogs on some builds.
     excelRow.values = [
       excelDate(row.visit_date),
       row.student_name,
-      email ? { text: email, hyperlink: `mailto:${email}` } : "",
+      email,
       excelTimeFromIso(row.time_in),
       excelTimeFromIso(row.time_out),
       templateDuration(row.duration_minutes),
@@ -269,17 +312,9 @@ export async function buildAttendanceWorkbook(from: string, to: string) {
     excelRow.getCell(1).numFmt = "mm-dd-yy";
     excelRow.getCell(4).numFmt = "h:mm";
     excelRow.getCell(5).numFmt = "h:mm";
-    if (email) {
-      excelRow.getCell(3).font = {
-        name: "Calibri",
-        size: 11,
-        underline: true,
-        color: { theme: 10 },
-      };
-    }
     excelRow.commit();
   }
 
-  const buffer = await wb.xlsx.writeBuffer();
-  return Buffer.from(buffer);
+  const raw = Buffer.from(await wb.xlsx.writeBuffer());
+  return sanitizeXlsxForExcel(raw);
 }
