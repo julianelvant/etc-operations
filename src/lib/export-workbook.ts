@@ -109,6 +109,18 @@ function styleHeaderRow(row: ExcelJS.Row, colCount: number) {
   }
 }
 
+/** Blank blue band between calendar days (matches attendance template). */
+function writeDaySeparator(ws: ExcelJS.Worksheet, rowIdx: number, colCount: number) {
+  const sep = ws.getRow(rowIdx);
+  sep.height = 10;
+  for (let c = 1; c <= colCount; c++) {
+    const cell = sep.getCell(c);
+    cell.value = null;
+    cell.fill = BLUE_SEP;
+  }
+  sep.commit();
+}
+
 function buildScheduleSheet(wb: ExcelJS.Workbook) {
   const ws = wb.addWorksheet("General schedule");
   SCHEDULE_WIDTHS.forEach((w, i) => {
@@ -247,12 +259,7 @@ export async function buildAttendanceWorkbook(from: string, to: string) {
 
     if (lastDate && lastDate !== row.attendance_date) {
       excelRowIdx += 1;
-      const sep = tutorsSheet.getRow(excelRowIdx);
-      for (let c = 1; c <= TUTOR_HEADERS.length; c++) {
-        sep.getCell(c).value = null;
-        sep.getCell(c).fill = BLUE_SEP;
-      }
-      sep.commit();
+      writeDaySeparator(tutorsSheet, excelRowIdx, TUTOR_HEADERS.length);
     }
     lastDate = row.attendance_date;
 
@@ -287,11 +294,18 @@ export async function buildAttendanceWorkbook(from: string, to: string) {
   styleHeaderRow(headerVisit, TUTOREE_HEADERS.length);
   headerVisit.commit();
 
+  let lastVisitDate = "";
   let r = 1;
   for (const row of visits ?? []) {
     const helper = tutorNameFromJoin(
       row.tutors as { name?: string } | { name?: string }[] | null,
     );
+    if (lastVisitDate && lastVisitDate !== row.visit_date) {
+      r += 1;
+      writeDaySeparator(tutoree, r, TUTOREE_HEADERS.length);
+    }
+    lastVisitDate = row.visit_date;
+
     r += 1;
     const email = (row.student_email ?? "").trim();
     const excelRow = tutoree.getRow(r);
