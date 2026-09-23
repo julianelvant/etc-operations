@@ -1,10 +1,31 @@
 import scheduleData from "@/data/schedule.json";
+import type { CalendarRecurringRow } from "@/lib/calendar-recurring";
 import { formatShiftRange, shiftToMinutes } from "@/lib/shift-time";
+
+export type ShiftRole = "Tutor" | "TA" | "Coordinator" | "Other";
+export type ShiftSource = "schedule" | "recurring" | "attendance";
 
 export type ScheduledTutor = {
   name: string;
   courses: string[];
+  role?: ShiftRole;
 };
+
+const SHIFT_ROLES: ShiftRole[] = ["Tutor", "TA", "Coordinator", "Other"];
+
+function normalizeRole(value: unknown): ShiftRole {
+  const role = String(value ?? "Tutor").trim();
+  return SHIFT_ROLES.includes(role as ShiftRole) ? (role as ShiftRole) : "Tutor";
+}
+
+function preferRole(current: ShiftRole, next: ShiftRole): ShiftRole {
+  if (current === "TA" || next === "TA") return "TA";
+  if (current === "Coordinator" || next === "Coordinator") {
+    return current === "Coordinator" ? current : next;
+  }
+  if (current !== "Tutor") return current;
+  return next;
+}
 
 export type Schedule = {
   title: string;
@@ -157,7 +178,75 @@ export type MergedShift = {
   end: number;
   /** Machine range e.g. "15:00-17:00" for attendance.scheduled_shift */
   shiftLabel: string;
+  role: ShiftRole;
+  source: ShiftSource;
+  isRecurring: boolean;
 };
+
+function defaultShiftFields(
+  partial: Omit<MergedShift, "role" | "source" | "isRecurring"> & {
+    role?: ShiftRole;
+    source?: ShiftSource;
+    isRecurring?: boolean;
+  },
+): MergedShift {
+  return {
+    ...partial,
+    role: partial.role ?? "Tutor",
+    source: partial.source ?? "schedule",
+    isRecurring: partial.isRecurring ?? false,
+  };
+}
+
+export function recurringRowToShift(row: CalendarRecurringRow): MergedShift {
+  const start = clockToMinutes(row.start_time);
+  const end = clockToMinutes(row.end_time);
+  return defaultShiftFields({
+    name: row.display_name,
+    courses: [...row.courses],
+    start,
+    end,
+    shiftLabel: `${row.start_time}-${row.end_time}`,
+    role: row.role,
+    source: "recurring",
+    isRecurring: true,
+  });
+}
+
+/** Append recurring blocks; schedule.json wins on name+time overlap. */
+export function mergeRecurringIntoShifts(
+  rosterShifts: MergedShift[],
+  recurringShifts: MergedShift[],
+): MergedShift[] {
+  const result = rosterShifts.map((s) => ({ ...s, courses: [...s.courses] }));
+
+  for (const rec of recurringShifts) {
+    const conflict = result.some(
+      (s) =>
+        s.name.toLowerCase() === rec.name.toLowerCase() &&
+        s.start < rec.end &&
+        s.end > rec.start,
+    );
+    if (!conflict) {
+      result.push({ ...rec, courses: [...rec.courses] });
+    }
+  }
+
+  return result.sort(
+    (a, b) => a.start - b.start || a.name.localeCompare(b.name),
+  );
+}
+
+export function buildDayShifts(
+  slots: Record<string, ScheduledTutor[]>,
+  recurring: CalendarRecurringRow[],
+  attendance: AttendanceShiftHint[],
+): MergedShift[] {
+  const roster = getMergedShiftsForDay(slots);
+  const recurringShifts = recurring.map(recurringRowToShift);
+  const merged = mergeRecurringIntoShifts(roster, recurringShifts);
+  return enrichShiftsWithAttendance(merged, attendance);
+}
 
 function minutesToClock(mins: number): string {
   const h = Math.floor(mins / 60);
@@ -169,8 +258,16 @@ function minutesToClock(mins: number): string {
 export function getMergedShiftsForDay(
   slots: Record<string, ScheduledTutor[]>,
 ): MergedShift[] {
-  type Interval = { start: number; end: number; courses: string[] };
-  const byTutor = new Map<string, { name: string; intervals: Interval[] }>();
+  type Interval = {
+    start: number;
+    end: number;
+    courses: string[];
+    role: ShiftRole;
+  };
+  const byTutor = new Map<
+    string,
+    { name: string; role: ShiftRole; intervals: Interval[] }
+  >();
 
   for (const slot of Object.keys(slots).sort()) {
     const [a, b] = slot.split("-");
@@ -178,15 +275,19 @@ export function getMergedShiftsForDay(
     const end = clockToMinutes(b);
     for (const entry of slots[slot]) {
       const key = entry.name.toLowerCase();
+      const entryRole = normalizeRole(entry.role);
       let row = byTutor.get(key);
       if (!row) {
-        row = { name: entry.name, intervals: [] };
+        row = { name: entry.name, role: entryRole, intervals: [] };
         byTutor.set(key, row);
+      } else {
+        row.role = preferRole(row.role, entryRole);
       }
       row.intervals.push({
         start,
         end,
         courses: [...entry.courses],
+        role: entryRole,
       });
     }
   }
@@ -197,21 +298,28 @@ export function getMergedShiftsForDay(
     let cur = sorted[0];
     if (!cur) continue;
     const courses = new Set(cur.courses);
+    let role = preferRole(row.role, cur.role);
 
     const flush = () => {
       const startClock = minutesToClock(cur.start);
       const endClock = minutesToClock(cur.end);
-      merged.push({
-        name: row.name,
-        courses: Array.from(courses).sort(),
-        start: cur.start,
-        end: cur.end,
-        shiftLabel: `${startClock}-${endClock}`,
-      });
+      merged.push(
+        defaultShiftFields({
+          name: row.name,
+          courses: Array.from(courses).sort(),
+          start: cur.start,
+          end: cur.end,
+          shiftLabel: `${startClock}-${endClock}`,
+          role,
+          source: "schedule",
+          isRecurring: false,
+        }),
+      );
     };
 
     for (let i = 1; i < sorted.length; i++) {
       const next = sorted[i];
+      role = preferRole(role, next.role);
       if (next.start <= cur.end) {
         cur = { ...cur, end: Math.max(cur.end, next.end) };
         for (const c of next.courses) courses.add(c);
@@ -220,6 +328,7 @@ export function getMergedShiftsForDay(
         cur = next;
         courses.clear();
         for (const c of next.courses) courses.add(c);
+        role = preferRole(row.role, cur.role);
       }
     }
     flush();
@@ -250,6 +359,7 @@ export type AttendanceShiftHint = {
   tutorName: string;
   scheduledShift: string | null | undefined;
   courses?: string[];
+  role?: string | null;
 };
 
 /**
@@ -295,11 +405,14 @@ export function enrichShiftsWithAttendance(
     if (bestIdx >= 0 && bestOverlap > 0) {
       claimed.add(bestIdx);
       const prev = result[bestIdx];
+      const attRole = row.role ? normalizeRole(row.role) : prev.role;
       result[bestIdx] = {
         ...prev,
         start: parsed.startMin,
         end: parsed.endMin,
         shiftLabel: label,
+        role: attRole,
+        source: prev.source === "schedule" ? "attendance" : prev.source,
       };
       continue;
     }
@@ -314,13 +427,18 @@ export function enrichShiftsWithAttendance(
 
     const coursesFromRoster =
       result.find((s) => s.name.toLowerCase() === nameLower)?.courses ?? [];
-    result.push({
-      name: row.tutorName.trim(),
-      courses: row.courses?.length ? [...row.courses] : [...coursesFromRoster],
-      start: parsed.startMin,
-      end: parsed.endMin,
-      shiftLabel: label,
-    });
+    result.push(
+      defaultShiftFields({
+        name: row.tutorName.trim(),
+        courses: row.courses?.length ? [...row.courses] : [...coursesFromRoster],
+        start: parsed.startMin,
+        end: parsed.endMin,
+        shiftLabel: label,
+        role: row.role ? normalizeRole(row.role) : "Tutor",
+        source: "attendance",
+        isRecurring: false,
+      }),
+    );
   }
 
   return result.sort(

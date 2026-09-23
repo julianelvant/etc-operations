@@ -3,11 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { TutorAttendanceRow, TutorRow } from "@/lib/attendance";
-import {
-  bucketShiftsForDesk,
-  enrichShiftsWithAttendance,
-  getMergedShiftsForDay,
-} from "@/lib/schedule";
+import { bucketShiftsForDesk, buildDayShifts } from "@/lib/schedule";
 import { CheckInPanels } from "./check-in-panels";
 import { DayCalendar } from "./day-calendar";
 import type { DeskClientProps } from "./desk-types";
@@ -23,6 +19,7 @@ export function DeskClient({
   dayKey,
   isToday,
   slots,
+  recurring,
   week,
   tutors,
   initialAttendance,
@@ -51,14 +48,14 @@ export function DeskClient({
   }, [tutors]);
 
   const dayShifts = useMemo(() => {
-    const roster = getMergedShiftsForDay(slots);
     const hints = live.attendance.map((row) => ({
       tutorName: row.tutors?.name ?? "",
       scheduledShift: row.scheduled_shift,
       courses: row.tutors?.courses ?? [],
+      role: row.role,
     }));
-    return enrichShiftsWithAttendance(roster, hints);
-  }, [slots, live.attendance]);
+    return buildDayShifts(slots, recurring, hints);
+  }, [slots, recurring, live.attendance]);
 
   const boards = useMemo(() => {
     if (!isToday) {
@@ -181,6 +178,7 @@ export function DeskClient({
           />
 
           <DayCalendar
+            date={date}
             shifts={dayShifts}
             attendance={live.attendance}
             nameToTutor={nameToTutor}

@@ -10,8 +10,10 @@ import {
   getVisitsForDate,
   listTutors,
 } from "@/lib/attendance";
+import { listRecurringForDay } from "@/lib/calendar-recurring";
 import { getBeirutParts, getScheduleForDate, getWeekDates } from "@/lib/schedule";
 import { createClient } from "@/lib/supabase/server";
+import { createWriteClient } from "@/lib/supabase/write";
 import { AdminClient } from "./admin-client";
 
 export const metadata: Metadata = {
@@ -38,6 +40,7 @@ export default async function AdminPage({
   const week = getWeekDates(date);
 
   const supabase = await createClient();
+  const writeClient = await createWriteClient();
   const [
     tutors,
     attendanceBase,
@@ -46,6 +49,7 @@ export default async function AdminPage({
     sessionHistory,
     attWithCreator,
     visWithCreator,
+    recurring,
   ] = await Promise.all([
     listTutors(),
     getAttendanceForDate(date),
@@ -60,6 +64,7 @@ export default async function AdminPage({
       .from("student_visits")
       .select("id, created_by")
       .eq("visit_date", date),
+    listRecurringForDay(writeClient, dayKey),
   ]);
 
   const attCreator = new Map(
@@ -85,6 +90,7 @@ export default async function AdminPage({
       dayKey={dayKey}
       isToday={isToday}
       slots={slots}
+      recurring={recurring}
       week={week}
       tutors={tutors}
       attendance={attendance}
