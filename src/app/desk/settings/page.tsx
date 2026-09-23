@@ -49,8 +49,8 @@ export default async function SettingsPage() {
           <dt className="text-sm font-medium text-muted">Schedule</dt>
           <dd className="sm:col-span-2 text-sm text-ink">
             Weekly roster from{" "}
-            <code className="rounded bg-bg px-1 text-xs">schedule.json</code>.
-            Update the file and redeploy to change the semester schedule.
+            <code className="rounded bg-bg px-1 text-xs">schedule.json</code>,
+            plus recurring entries you manage below.
           </dd>
         </div>
         <div className="grid gap-1 px-5 py-4 sm:grid-cols-3 sm:gap-4">
