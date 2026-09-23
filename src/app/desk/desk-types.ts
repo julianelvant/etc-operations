@@ -3,8 +3,13 @@ import type {
   TutorAttendanceRow,
   TutorRow,
 } from "@/lib/attendance";
+import type { CalendarRecurringRow } from "@/lib/calendar-recurring";
+import type { ShiftRole } from "@/lib/schedule";
 
-export type SlotMap = Record<string, { name: string; courses: string[] }[]>;
+export type SlotMap = Record<
+  string,
+  { name: string; courses: string[]; role?: ShiftRole }[]
+>;
 
 export type WeekDay = {
   date: string;
@@ -22,6 +27,7 @@ export type DeskClientProps = {
   dayKey: string;
   isToday: boolean;
   slots: SlotMap;
+  recurring: CalendarRecurringRow[];
   week: WeekDay[];
   tutors: TutorRow[];
   initialAttendance: TutorAttendanceRow[];

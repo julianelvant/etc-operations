@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import type { StudentVisitRow, TutorAttendanceRow, TutorRow } from "@/lib/attendance";
 import type { DeskSessionRow } from "@/lib/auth/desk-sessions";
+import type { CalendarRecurringRow } from "@/lib/calendar-recurring";
 import {
-  enrichShiftsWithAttendance,
+  buildDayShifts,
   formatClock,
   formatDurationMinutes,
-  getMergedShiftsForDay,
 } from "@/lib/schedule";
 import { formatShiftRange } from "@/lib/shift-time";
 import { DayCalendar } from "@/app/desk/day-calendar";
@@ -25,6 +25,7 @@ type Props = {
   dayKey: string;
   isToday: boolean;
   slots: SlotMap;
+  recurring: CalendarRecurringRow[];
   week: WeekDay[];
   tutors: TutorRow[];
   attendance: AttendanceAdmin[];
@@ -61,7 +62,9 @@ function durationLabel(start: string, end: string | null) {
 export function AdminClient({
   date,
   today,
+  isToday,
   slots,
+  recurring,
   week,
   tutors,
   attendance,
@@ -78,16 +81,17 @@ export function AdminClient({
   }, [tutors]);
 
   const dayShifts = useMemo(() => {
-    const roster = getMergedShiftsForDay(slots);
-    return enrichShiftsWithAttendance(
-      roster,
+    return buildDayShifts(
+      slots,
+      recurring,
       attendance.map((row) => ({
         tutorName: row.tutors?.name ?? "",
         scheduledShift: row.scheduled_shift,
         courses: row.tutors?.courses ?? [],
+        role: row.role,
       })),
     );
-  }, [slots, attendance]);
+  }, [slots, recurring, attendance]);
   const checkedInIds = useMemo(
     () => new Set(attendance.filter((a) => !a.time_out).map((a) => a.tutor_id)),
     [attendance],
@@ -195,11 +199,12 @@ export function AdminClient({
 
       {/* Calendar */}
       <DayCalendar
+        date={date}
         shifts={dayShifts}
         attendance={attendance}
         nameToTutor={nameToTutor}
         checkedInIds={checkedInIds}
-        isToday={false}
+        isToday={isToday}
         readOnly
       />
 

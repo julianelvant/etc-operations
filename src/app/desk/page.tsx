@@ -5,11 +5,13 @@ import {
   getVisitsForDate,
   listTutors,
 } from "@/lib/attendance";
+import { listRecurringForDay } from "@/lib/calendar-recurring";
 import {
   getBeirutParts,
   getScheduleForDate,
   getWeekDates,
 } from "@/lib/schedule";
+import { createWriteClient } from "@/lib/supabase/write";
 import { DeskClient } from "./desk-client";
 import { redirect } from "next/navigation";
 
@@ -35,10 +37,12 @@ export default async function DeskPage({
   const { dayKey, slots, isToday } = getScheduleForDate(date);
   const week = getWeekDates(date);
 
-  const [tutors, attendance, visits] = await Promise.all([
+  const supabase = await createWriteClient();
+  const [tutors, attendance, visits, recurring] = await Promise.all([
     listTutors(),
     getAttendanceForDate(date),
     getVisitsForDate(date),
+    listRecurringForDay(supabase, dayKey),
   ]);
 
   return (
@@ -48,6 +52,7 @@ export default async function DeskPage({
       dayKey={dayKey}
       isToday={isToday}
       slots={slots}
+      recurring={recurring}
       week={week}
       tutors={tutors}
       initialAttendance={attendance}

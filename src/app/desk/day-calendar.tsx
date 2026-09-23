@@ -8,6 +8,7 @@ import {
   TIMELINE_START_MIN,
   beirutMinutes,
   type MergedShift,
+  type ShiftRole,
 } from "@/lib/schedule";
 import { formatShiftRange, shiftToMinutes } from "@/lib/shift-time";
 
@@ -21,13 +22,16 @@ export type CalendarBlock = {
   endMin: number;
   shiftLabel: string;
   status: "scheduled" | "here" | "done";
+  role: ShiftRole;
+  isRecurring: boolean;
   attendanceId?: string;
   timeInLabel?: string;
-  lane: number;
-  laneCount: number;
+  row: number;
+  rowCount: number;
 };
 
 type Props = {
+  date: string;
   shifts: MergedShift[];
   attendance: TutorAttendanceRow[];
   nameToTutor: Map<string, TutorRow>;
@@ -40,10 +44,12 @@ type Props = {
   onEditAttendance?: (attendanceId: string) => void;
 };
 
-const LANE_MIN_PX = 300;
+const ROW_HEIGHT_PX = 80;
+const TIME_RULER_HEIGHT_PX = 40;
+const TIMELINE_MIN_WIDTH_PX = 720;
 
-function assignLanes(
-  blocks: Omit<CalendarBlock, "lane" | "laneCount">[],
+function assignRows(
+  blocks: Omit<CalendarBlock, "row" | "rowCount">[],
 ): CalendarBlock[] {
   const sorted = [...blocks].sort(
     (a, b) =>
@@ -51,22 +57,22 @@ function assignLanes(
       a.endMin - b.endMin ||
       a.name.localeCompare(b.name),
   );
-  const laneEnds: number[] = [];
-  const withLane: CalendarBlock[] = [];
+  const rowEnds: number[] = [];
+  const withRow: CalendarBlock[] = [];
 
   for (const b of sorted) {
-    let lane = laneEnds.findIndex((end) => end <= b.startMin);
-    if (lane === -1) {
-      lane = laneEnds.length;
-      laneEnds.push(b.endMin);
+    let row = rowEnds.findIndex((end) => end <= b.startMin);
+    if (row === -1) {
+      row = rowEnds.length;
+      rowEnds.push(b.endMin);
     } else {
-      laneEnds[lane] = b.endMin;
+      rowEnds[row] = b.endMin;
     }
-    withLane.push({ ...b, lane, laneCount: 1 });
+    withRow.push({ ...b, row, rowCount: 1 });
   }
 
-  const maxLane = Math.max(0, ...withLane.map((b) => b.lane)) + 1;
-  return withLane.map((b) => ({ ...b, laneCount: maxLane }));
+  const maxRow = Math.max(0, ...withRow.map((b) => b.row)) + 1;
+  return withRow.map((b) => ({ ...b, rowCount: maxRow }));
 }
 
 function minutesLabel(mins: number): string {
@@ -95,7 +101,43 @@ function formatClockShort(iso: string): string {
   }).format(new Date(iso));
 }
 
+function formatDateHeading(date: string, isToday: boolean): string {
+  if (isToday) return "Today's calendar";
+  const label = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Beirut",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  }).format(new Date(`${date}T12:00:00+03:00`));
+  return `Schedule for ${label}`;
+}
+
+function RoleBadge({ role }: { role: ShiftRole }) {
+  if (role === "Tutor") return null;
+  const tone =
+    role === "TA"
+      ? "bg-slate-700 text-white"
+      : role === "Coordinator"
+        ? "bg-brand/15 text-brand-ink"
+        : "bg-slate-100 text-slate-700";
+  return (
+    <span
+      className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${tone}`}
+    >
+      {role}
+    </span>
+  );
+}
+
+function roleRailClass(role: ShiftRole, status: CalendarBlock["status"]): string {
+  if (status === "here") return "border-l-[3px] border-l-[var(--status-here-border)]";
+  if (role === "TA") return "border-l-[3px] border-l-slate-600";
+  if (role === "Coordinator") return "border-l-[3px] border-l-brand";
+  return "border-l-[3px] border-l-transparent";
+}
+
 export function DayCalendar({
+  date,
   shifts,
   attendance,
   nameToTutor,
@@ -109,10 +151,10 @@ export function DayCalendar({
   const rangeStart = TIMELINE_START_MIN;
   const rangeEnd = TIMELINE_END_MIN;
   const totalMin = rangeEnd - rangeStart;
-  const heightPx = totalMin * TIMELINE_PX_PER_MIN;
+  const timelineWidthPx = totalMin * TIMELINE_PX_PER_MIN;
 
   const blocks = useMemo(() => {
-    const byKey = new Map<string, Omit<CalendarBlock, "lane" | "laneCount">>();
+    const byKey = new Map<string, Omit<CalendarBlock, "row" | "rowCount">>();
 
     for (const s of shifts) {
       const tutor = nameToTutor.get(s.name.toLowerCase());
@@ -127,6 +169,11 @@ export function DayCalendar({
       const status: CalendarBlock["status"] =
         here || open ? "here" : done ? "done" : "scheduled";
       const sample = open ?? attForTutor[0];
+      const attRole = open?.role || sample?.role;
+      const role: ShiftRole =
+        attRole && ["Tutor", "TA", "Coordinator", "Other"].includes(attRole)
+          ? (attRole as ShiftRole)
+          : s.role;
       const key = `sched:${s.name}:${s.shiftLabel}`;
       byKey.set(key, {
         key,
@@ -138,6 +185,8 @@ export function DayCalendar({
         endMin: s.end,
         shiftLabel: s.shiftLabel,
         status,
+        role,
+        isRecurring: s.isRecurring,
         attendanceId: sample?.id,
         timeInLabel: sample?.time_in
           ? formatClockShort(sample.time_in)
@@ -168,9 +217,13 @@ export function DayCalendar({
       );
 
       const status: CalendarBlock["status"] = !row.time_out ? "here" : "done";
+      const role: ShiftRole = ["Tutor", "TA", "Coordinator", "Other"].includes(
+        row.role,
+      )
+        ? (row.role as ShiftRole)
+        : "Tutor";
 
       if (covered) {
-        // Prefer a single enriched roster block (import may be half-hour off)
         let bestKey: string | null = null;
         let bestOverlap = 0;
         for (const [k, b] of byKey) {
@@ -188,6 +241,7 @@ export function DayCalendar({
           byKey.set(bestKey, {
             ...b,
             status,
+            role,
             attendanceId: row.id,
             timeInLabel: row.time_in
               ? formatClockShort(row.time_in)
@@ -216,12 +270,14 @@ export function DayCalendar({
           row.scheduled_shift ||
           `${minutesPad(parsed.startMin)}-${minutesPad(parsed.endMin)}`,
         status,
+        role,
+        isRecurring: false,
         attendanceId: row.id,
         timeInLabel: row.time_in ? formatClockShort(row.time_in) : undefined,
       });
     }
 
-    return assignLanes(
+    return assignRows(
       [...byKey.values()].filter(
         (b) => b.endMin > rangeStart && b.startMin < rangeEnd,
       ),
@@ -234,8 +290,9 @@ export function DayCalendar({
     return out;
   }, [rangeStart, rangeEnd]);
 
-  const laneCount = Math.max(1, ...blocks.map((b) => b.laneCount));
-  const gridWidthPx = Math.max(laneCount * LANE_MIN_PX, 720);
+  const rowCount = Math.max(1, ...blocks.map((b) => b.rowCount));
+  const gridHeightPx = rowCount * ROW_HEIGHT_PX;
+  const hasTa = blocks.some((b) => b.role === "TA");
 
   return (
     <section className="space-y-3" aria-labelledby="day-calendar-heading">
@@ -244,58 +301,88 @@ export function DayCalendar({
           id="day-calendar-heading"
           className="font-display text-xl font-semibold text-ink"
         >
-          Today&apos;s calendar
+          {formatDateHeading(date, isToday)}
         </h2>
         <p className="mt-0.5 text-sm text-muted">
-          {blocks.length} block{blocks.length === 1 ? "" : "s"} on the timeline
+          {blocks.length} block{blocks.length === 1 ? "" : "s"} · time runs
+          left to right
+          {hasTa ? (
+            <>
+              {" "}
+              · <span className="font-medium text-slate-700">TA</span> badge =
+              teaching assistant
+            </>
+          ) : null}
         </p>
       </div>
 
       <div className="overflow-x-auto surface-panel">
         <div
-          className="relative"
-          style={{ height: heightPx + 24, minWidth: gridWidthPx + 64 }}
+          className="relative min-w-full"
+          style={{ minWidth: TIMELINE_MIN_WIDTH_PX + 48 }}
         >
-          <div className="absolute inset-y-0 left-0 z-10 w-16 border-r border-border bg-bg pt-3">
-            {ticks.map((m) => (
-              <div
-                key={m}
-                className="absolute right-2 -translate-y-1/2 text-[11px] font-medium tabular-nums text-muted"
-                style={{ top: 12 + (m - rangeStart) * TIMELINE_PX_PER_MIN }}
-              >
-                {minutesLabel(m)}
-              </div>
-            ))}
+          {/* Sticky time ruler */}
+          <div
+            className="sticky top-0 z-20 border-b border-border bg-surface"
+            style={{ height: TIME_RULER_HEIGHT_PX }}
+          >
+            <div
+              className="relative ml-3 mr-3"
+              style={{ width: timelineWidthPx, height: TIME_RULER_HEIGHT_PX }}
+            >
+              {ticks.map((m) => (
+                <div
+                  key={m}
+                  className="absolute top-0 flex h-full flex-col items-center"
+                  style={{
+                    left: (m - rangeStart) * TIMELINE_PX_PER_MIN,
+                  }}
+                >
+                  <span
+                    className={`mt-1 text-[11px] font-medium tabular-nums ${
+                      m % 60 === 0 ? "text-ink" : "text-muted"
+                    }`}
+                  >
+                    {minutesLabel(m)}
+                  </span>
+                  <div
+                    className={`mt-auto h-2 w-px ${
+                      m % 60 === 0 ? "bg-border" : "bg-slate-200"
+                    }`}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
 
+          {/* Row stack */}
           <div
-            className="absolute inset-y-0 left-16 pt-3 pr-3"
-            style={{ width: gridWidthPx }}
+            className="relative ml-3 mr-3 overflow-y-auto"
+            style={{ height: gridHeightPx }}
           >
+            {/* Vertical grid lines */}
             {ticks.map((m) => (
               <div
-                key={`line-${m}`}
-                className={`absolute left-0 right-0 border-t ${
-                  m % 60 === 0 ? "border-border" : "border-slate-100"
+                key={`grid-${m}`}
+                className={`absolute top-0 bottom-0 border-l ${
+                  m % 60 === 0 ? "border-border/80" : "border-slate-100"
                 }`}
-                style={{ top: 12 + (m - rangeStart) * TIMELINE_PX_PER_MIN }}
+                style={{ left: (m - rangeStart) * TIMELINE_PX_PER_MIN }}
               />
             ))}
 
             {blocks.map((b) => {
-              const top =
-                12 +
+              const leftPx =
                 (Math.max(b.startMin, rangeStart) - rangeStart) *
-                  TIMELINE_PX_PER_MIN;
-              const bottomMin = Math.min(b.endMin, rangeEnd);
-              const height = Math.max(
-                56,
-                (bottomMin - Math.max(b.startMin, rangeStart)) *
+                TIMELINE_PX_PER_MIN;
+              const endMin = Math.min(b.endMin, rangeEnd);
+              const widthPx = Math.max(
+                120,
+                (endMin - Math.max(b.startMin, rangeStart)) *
                   TIMELINE_PX_PER_MIN -
-                  6,
+                  4,
               );
-              const leftPx = b.lane * LANE_MIN_PX + 6;
-              const widthPx = LANE_MIN_PX - 12;
+              const topPx = b.row * ROW_HEIGHT_PX + 8;
               const pending = b.tutor && isPending(`in:${b.tutor.id}`);
               const canCheckIn =
                 !readOnly &&
@@ -322,40 +409,69 @@ export function DayCalendar({
               return (
                 <div
                   key={b.key}
-                  className={`absolute overflow-hidden rounded-lg border px-3 py-2 ${tone}`}
-                  style={{ top, height, left: leftPx, width: widthPx }}
-                  title={`${b.name} · ${formatShiftRange(b.shiftLabel)}`}
-                  onContextMenu={(e) => {
-                    if (!onEditAttendance || !b.attendanceId) return;
-                    e.preventDefault();
-                    onEditAttendance(b.attendanceId);
+                  className="absolute"
+                  style={{
+                    top: topPx,
+                    left: 0,
+                    width: timelineWidthPx,
+                    height: ROW_HEIGHT_PX - 12,
                   }}
                 >
-                  <div className="flex h-full min-h-0 flex-col gap-1">
-                    <div className="flex min-w-0 items-start justify-between gap-2">
-                      <p className="min-w-0 truncate text-sm font-semibold leading-snug">
-                        {b.name}
+                  <div
+                    className={`absolute overflow-hidden rounded-lg border px-3 py-2 ${tone} ${roleRailClass(b.role, b.status)}`}
+                    style={{ left: leftPx, width: widthPx, height: "100%" }}
+                    title={`${b.name} · ${formatShiftRange(b.shiftLabel)}${b.role !== "Tutor" ? ` · ${b.role}` : ""}`}
+                    onContextMenu={(e) => {
+                      if (!onEditAttendance || !b.attendanceId) return;
+                      e.preventDefault();
+                      onEditAttendance(b.attendanceId);
+                    }}
+                  >
+                    <div className="flex h-full min-h-0 flex-col gap-0.5">
+                      <div className="flex min-w-0 items-start justify-between gap-2">
+                        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                          <p className="min-w-0 text-sm font-semibold leading-snug break-words">
+                            {b.name}
+                          </p>
+                          <RoleBadge role={b.role} />
+                          {b.isRecurring ? (
+                            <span
+                              className="shrink-0 text-[10px] font-medium text-muted"
+                              title="Recurring weekly entry"
+                            >
+                              ↻
+                            </span>
+                          ) : null}
+                        </div>
+                        {statusLabel ? (
+                          <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-brand/10 text-brand-ink">
+                            {statusLabel}
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="text-xs tabular-nums leading-snug text-muted">
+                        {formatShiftRange(b.shiftLabel)}
+                        {b.timeInLabel ? ` · in ${b.timeInLabel}` : ""}
                       </p>
-                      {statusLabel ? (
-                        <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-brand/10 text-brand-ink">
-                          {statusLabel}
-                        </span>
+                      {b.courses.length > 0 && widthPx > 180 ? (
+                        <p className="line-clamp-1 text-[11px] leading-snug text-muted">
+                          {b.courses.slice(0, 4).join(" · ")}
+                          {b.courses.length > 4
+                            ? ` +${b.courses.length - 4}`
+                            : ""}
+                        </p>
+                      ) : null}
+                      {canCheckIn ? (
+                        <button
+                          type="button"
+                          disabled={!!pending}
+                          onClick={() => onCheckIn?.(b.tutor!, b.shiftLabel)}
+                          className="btn-primary mt-auto min-h-8 shrink-0 px-2 text-xs"
+                        >
+                          Check in
+                        </button>
                       ) : null}
                     </div>
-                    <p className="truncate whitespace-nowrap text-xs tabular-nums leading-snug text-muted">
-                      {formatShiftRange(b.shiftLabel)}
-                      {b.timeInLabel ? ` · in ${b.timeInLabel}` : ""}
-                    </p>
-                    {canCheckIn ? (
-                      <button
-                        type="button"
-                        disabled={!!pending}
-                        onClick={() => onCheckIn?.(b.tutor!, b.shiftLabel)}
-                        className="btn-primary mt-auto min-h-8 shrink-0 px-2 text-xs"
-                      >
-                        Check in
-                      </button>
-                    ) : null}
                   </div>
                 </div>
               );
