@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import type { TutorAttendanceRow, TutorRow } from "@/lib/attendance";
 import {
   TIMELINE_END_MIN,
-  TIMELINE_PX_PER_MIN,
   TIMELINE_START_MIN,
   beirutMinutes,
   type MergedShift,
@@ -26,8 +25,6 @@ export type CalendarBlock = {
   isRecurring: boolean;
   attendanceId?: string;
   timeInLabel?: string;
-  row: number;
-  rowCount: number;
 };
 
 type Props = {
@@ -39,41 +36,12 @@ type Props = {
   isToday: boolean;
   isPending?: (key: string) => boolean;
   onCheckIn?: (tutor: TutorRow, scheduledShift: string) => void;
-  /** Admin / read-only: hide check-in controls */
   readOnly?: boolean;
   onEditAttendance?: (attendanceId: string) => void;
 };
 
-const ROW_HEIGHT_PX = 80;
-const TIME_RULER_HEIGHT_PX = 40;
-const TIMELINE_MIN_WIDTH_PX = 720;
-
-function assignRows(
-  blocks: Omit<CalendarBlock, "row" | "rowCount">[],
-): CalendarBlock[] {
-  const sorted = [...blocks].sort(
-    (a, b) =>
-      a.startMin - b.startMin ||
-      a.endMin - b.endMin ||
-      a.name.localeCompare(b.name),
-  );
-  const rowEnds: number[] = [];
-  const withRow: CalendarBlock[] = [];
-
-  for (const b of sorted) {
-    let row = rowEnds.findIndex((end) => end <= b.startMin);
-    if (row === -1) {
-      row = rowEnds.length;
-      rowEnds.push(b.endMin);
-    } else {
-      rowEnds[row] = b.endMin;
-    }
-    withRow.push({ ...b, row, rowCount: 1 });
-  }
-
-  const maxRow = Math.max(0, ...withRow.map((b) => b.row)) + 1;
-  return withRow.map((b) => ({ ...b, rowCount: maxRow }));
-}
+const LABEL_COL_PX = 176;
+const TIMELINE_MIN_WIDTH_PX = 640;
 
 function minutesLabel(mins: number): string {
   let h = Math.floor(mins / 60);
@@ -129,11 +97,31 @@ function RoleBadge({ role }: { role: ShiftRole }) {
   );
 }
 
-function roleRailClass(role: ShiftRole, status: CalendarBlock["status"]): string {
-  if (status === "here") return "border-l-[3px] border-l-[var(--status-here-border)]";
+function roleRailClass(
+  role: ShiftRole,
+  status: CalendarBlock["status"],
+): string {
+  if (status === "here") {
+    return "border-l-[3px] border-l-[var(--status-here-border)]";
+  }
   if (role === "TA") return "border-l-[3px] border-l-slate-600";
   if (role === "Coordinator") return "border-l-[3px] border-l-brand";
   return "border-l-[3px] border-l-transparent";
+}
+
+function barPosition(
+  startMin: number,
+  endMin: number,
+  rangeStart: number,
+  rangeEnd: number,
+) {
+  const span = rangeEnd - rangeStart;
+  const left = ((Math.max(startMin, rangeStart) - rangeStart) / span) * 100;
+  const right = ((rangeEnd - Math.min(endMin, rangeEnd)) / span) * 100;
+  return {
+    left: `${left}%`,
+    right: `${right}%`,
+  };
 }
 
 export function DayCalendar({
@@ -150,11 +138,9 @@ export function DayCalendar({
 }: Props) {
   const rangeStart = TIMELINE_START_MIN;
   const rangeEnd = TIMELINE_END_MIN;
-  const totalMin = rangeEnd - rangeStart;
-  const timelineWidthPx = totalMin * TIMELINE_PX_PER_MIN;
 
   const blocks = useMemo(() => {
-    const byKey = new Map<string, Omit<CalendarBlock, "row" | "rowCount">>();
+    const byKey = new Map<string, CalendarBlock>();
 
     for (const s of shifts) {
       const tutor = nameToTutor.get(s.name.toLowerCase());
@@ -277,21 +263,22 @@ export function DayCalendar({
       });
     }
 
-    return assignRows(
-      [...byKey.values()].filter(
-        (b) => b.endMin > rangeStart && b.startMin < rangeEnd,
-      ),
-    );
+    return [...byKey.values()]
+      .filter((b) => b.endMin > rangeStart && b.startMin < rangeEnd)
+      .sort(
+        (a, b) =>
+          a.startMin - b.startMin ||
+          a.endMin - b.endMin ||
+          a.name.localeCompare(b.name),
+      );
   }, [shifts, attendance, nameToTutor, checkedInIds, rangeStart, rangeEnd]);
 
-  const ticks = useMemo(() => {
+  const hourTicks = useMemo(() => {
     const out: number[] = [];
-    for (let m = rangeStart; m <= rangeEnd; m += 30) out.push(m);
+    for (let m = rangeStart; m <= rangeEnd; m += 60) out.push(m);
     return out;
   }, [rangeStart, rangeEnd]);
 
-  const rowCount = Math.max(1, ...blocks.map((b) => b.rowCount));
-  const gridHeightPx = rowCount * ROW_HEIGHT_PX;
   const hasTa = blocks.some((b) => b.role === "TA");
 
   return (
@@ -304,13 +291,13 @@ export function DayCalendar({
           {formatDateHeading(date, isToday)}
         </h2>
         <p className="mt-0.5 text-sm text-muted">
-          {blocks.length} block{blocks.length === 1 ? "" : "s"} · time runs
-          left to right
+          {blocks.length} shift{blocks.length === 1 ? "" : "s"} · scroll
+          sideways on small screens for the timeline
           {hasTa ? (
             <>
               {" "}
-              · <span className="font-medium text-slate-700">TA</span> badge =
-              teaching assistant
+              · <span className="font-medium text-slate-700">TA</span> = teaching
+              assistant
             </>
           ) : null}
         </p>
@@ -318,71 +305,42 @@ export function DayCalendar({
 
       <div className="overflow-x-auto surface-panel">
         <div
-          className="relative min-w-full"
-          style={{ minWidth: TIMELINE_MIN_WIDTH_PX + 48 }}
+          className="min-w-full"
+          style={{ minWidth: LABEL_COL_PX + TIMELINE_MIN_WIDTH_PX + 24 }}
         >
-          {/* Sticky time ruler */}
+          {/* Time ruler */}
           <div
-            className="sticky top-0 z-20 border-b border-border bg-surface"
-            style={{ height: TIME_RULER_HEIGHT_PX }}
+            className="sticky top-0 z-10 grid border-b border-border bg-surface"
+            style={{ gridTemplateColumns: `${LABEL_COL_PX}px 1fr` }}
           >
-            <div
-              className="relative ml-3 mr-3"
-              style={{ width: timelineWidthPx, height: TIME_RULER_HEIGHT_PX }}
-            >
-              {ticks.map((m) => (
-                <div
-                  key={m}
-                  className="absolute top-0 flex h-full flex-col items-center"
-                  style={{
-                    left: (m - rangeStart) * TIMELINE_PX_PER_MIN,
-                  }}
-                >
+            <div className="border-r border-border bg-bg px-3 py-2 text-xs font-medium text-muted">
+              Staff
+            </div>
+            <div className="relative h-10 px-3">
+              {hourTicks.map((m) => {
+                const pos = barPosition(m, m, rangeStart, rangeEnd).left;
+                return (
                   <span
-                    className={`mt-1 text-[11px] font-medium tabular-nums ${
-                      m % 60 === 0 ? "text-ink" : "text-muted"
-                    }`}
+                    key={m}
+                    className="absolute top-2 -translate-x-1/2 text-[11px] font-medium tabular-nums text-muted"
+                    style={{ left: pos }}
                   >
                     {minutesLabel(m)}
                   </span>
-                  <div
-                    className={`mt-auto h-2 w-px ${
-                      m % 60 === 0 ? "bg-border" : "bg-slate-200"
-                    }`}
-                  />
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
-          {/* Row stack */}
-          <div
-            className="relative ml-3 mr-3 overflow-y-auto"
-            style={{ height: gridHeightPx }}
-          >
-            {/* Vertical grid lines */}
-            {ticks.map((m) => (
-              <div
-                key={`grid-${m}`}
-                className={`absolute top-0 bottom-0 border-l ${
-                  m % 60 === 0 ? "border-border/80" : "border-slate-100"
-                }`}
-                style={{ left: (m - rangeStart) * TIMELINE_PX_PER_MIN }}
-              />
-            ))}
-
+          {/* One row per shift — no overlap */}
+          <ul className="divide-y divide-border">
             {blocks.map((b) => {
-              const leftPx =
-                (Math.max(b.startMin, rangeStart) - rangeStart) *
-                TIMELINE_PX_PER_MIN;
-              const endMin = Math.min(b.endMin, rangeEnd);
-              const widthPx = Math.max(
-                120,
-                (endMin - Math.max(b.startMin, rangeStart)) *
-                  TIMELINE_PX_PER_MIN -
-                  4,
+              const pos = barPosition(
+                b.startMin,
+                b.endMin,
+                rangeStart,
+                rangeEnd,
               );
-              const topPx = b.row * ROW_HEIGHT_PX + 8;
               const pending = b.tutor && isPending(`in:${b.tutor.id}`);
               const canCheckIn =
                 !readOnly &&
@@ -407,76 +365,86 @@ export function DayCalendar({
                     : null;
 
               return (
-                <div
+                <li
                   key={b.key}
-                  className="absolute"
-                  style={{
-                    top: topPx,
-                    left: 0,
-                    width: timelineWidthPx,
-                    height: ROW_HEIGHT_PX - 12,
-                  }}
+                  className="grid items-stretch"
+                  style={{ gridTemplateColumns: `${LABEL_COL_PX}px 1fr` }}
                 >
+                  <div className="flex flex-col gap-1.5 border-r border-border bg-bg px-3 py-3">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <p className="text-sm font-semibold leading-snug text-ink">
+                        {b.name}
+                      </p>
+                      <RoleBadge role={b.role} />
+                      {b.isRecurring ? (
+                        <span
+                          className="text-[10px] font-medium text-muted"
+                          title="Recurring weekly"
+                        >
+                          ↻
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="text-xs tabular-nums text-muted">
+                      {formatShiftRange(b.shiftLabel)}
+                      {b.timeInLabel ? ` · in ${b.timeInLabel}` : ""}
+                    </p>
+                    {statusLabel ? (
+                      <span className="inline-flex w-fit rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-brand/10 text-brand-ink">
+                        {statusLabel}
+                      </span>
+                    ) : null}
+                    {canCheckIn ? (
+                      <button
+                        type="button"
+                        disabled={!!pending}
+                        onClick={() => onCheckIn?.(b.tutor!, b.shiftLabel)}
+                        className="btn-primary mt-1 min-h-9 w-full px-2 text-xs"
+                      >
+                        Check in
+                      </button>
+                    ) : null}
+                  </div>
+
                   <div
-                    className={`absolute overflow-hidden rounded-lg border px-3 py-2 ${tone} ${roleRailClass(b.role, b.status)}`}
-                    style={{ left: leftPx, width: widthPx, height: "100%" }}
-                    title={`${b.name} · ${formatShiftRange(b.shiftLabel)}${b.role !== "Tutor" ? ` · ${b.role}` : ""}`}
+                    className="relative min-h-[3.5rem] px-3 py-3"
                     onContextMenu={(e) => {
                       if (!onEditAttendance || !b.attendanceId) return;
                       e.preventDefault();
                       onEditAttendance(b.attendanceId);
                     }}
                   >
-                    <div className="flex h-full min-h-0 flex-col gap-0.5">
-                      <div className="flex min-w-0 items-start justify-between gap-2">
-                        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                          <p className="min-w-0 text-sm font-semibold leading-snug break-words">
-                            {b.name}
-                          </p>
-                          <RoleBadge role={b.role} />
-                          {b.isRecurring ? (
-                            <span
-                              className="shrink-0 text-[10px] font-medium text-muted"
-                              title="Recurring weekly entry"
-                            >
-                              ↻
-                            </span>
-                          ) : null}
-                        </div>
-                        {statusLabel ? (
-                          <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-brand/10 text-brand-ink">
-                            {statusLabel}
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="text-xs tabular-nums leading-snug text-muted">
+                    {hourTicks.map((m) => {
+                      const left = barPosition(m, m, rangeStart, rangeEnd).left;
+                      return (
+                        <div
+                          key={`${b.key}-grid-${m}`}
+                          className="absolute top-2 bottom-2 border-l border-slate-100"
+                          style={{ left }}
+                        />
+                      );
+                    })}
+
+                    <div
+                      className={`absolute top-3 bottom-3 flex min-w-[4rem] items-center overflow-hidden rounded-md border px-2 ${tone} ${roleRailClass(b.role, b.status)}`}
+                      style={{ left: pos.left, right: pos.right }}
+                      title={`${b.name} · ${formatShiftRange(b.shiftLabel)}`}
+                    >
+                      <p className="truncate text-xs font-medium">
                         {formatShiftRange(b.shiftLabel)}
-                        {b.timeInLabel ? ` · in ${b.timeInLabel}` : ""}
                       </p>
-                      {b.courses.length > 0 && widthPx > 180 ? (
-                        <p className="line-clamp-1 text-[11px] leading-snug text-muted">
-                          {b.courses.slice(0, 4).join(" · ")}
-                          {b.courses.length > 4
-                            ? ` +${b.courses.length - 4}`
-                            : ""}
-                        </p>
-                      ) : null}
-                      {canCheckIn ? (
-                        <button
-                          type="button"
-                          disabled={!!pending}
-                          onClick={() => onCheckIn?.(b.tutor!, b.shiftLabel)}
-                          className="btn-primary mt-auto min-h-8 shrink-0 px-2 text-xs"
-                        >
-                          Check in
-                        </button>
-                      ) : null}
                     </div>
                   </div>
-                </div>
+                </li>
               );
             })}
-          </div>
+          </ul>
+
+          {blocks.length === 0 ? (
+            <p className="px-5 py-8 text-center text-sm text-muted">
+              No shifts scheduled for this day.
+            </p>
+          ) : null}
         </div>
       </div>
     </section>
