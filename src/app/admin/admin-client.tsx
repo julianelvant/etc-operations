@@ -14,6 +14,7 @@ import {
 import { formatShiftRange } from "@/lib/shift-time";
 import { DayCalendar } from "@/app/desk/day-calendar";
 import type { SlotMap, WeekDay } from "@/app/desk/desk-types";
+import { DataHealthStrip } from "./data-health-strip";
 
 type AttendanceAdmin = TutorAttendanceRow & { created_by?: string };
 type VisitAdmin = StudentVisitRow & { created_by?: string };
@@ -97,6 +98,7 @@ export function AdminClient({
 
   return (
     <div className="space-y-8">
+      <DataHealthStrip />
       <section className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-semibold text-ink sm:text-3xl">

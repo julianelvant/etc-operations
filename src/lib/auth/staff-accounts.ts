@@ -1,10 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
+import { createWriteClient } from "@/lib/supabase/write";
 import type { SessionRole } from "@/lib/auth/session";
 import {
   getAdminCredentials,
   getDeskCredentials,
 } from "@/lib/auth/session";
 import { hashPassword, verifyPassword } from "@/lib/auth/passwords";
+import { requireAudit } from "@/lib/data/backups";
 
 export type StaffAccount = {
   id: string;
@@ -43,7 +45,7 @@ function toPublic(row: StaffAccountRow): StaffAccount {
 
 /** Seed desk + admin from env when the table is empty. */
 export async function ensureStaffAccountsSeeded(): Promise<void> {
-  const supabase = await createClient();
+  const supabase = await createWriteClient();
   const { count, error } = await supabase
     .from("staff_accounts")
     .select("id", { count: "exact", head: true });
@@ -173,7 +175,7 @@ export async function createStaffAccount(
     throw new Error("Role must be desk or admin");
   }
 
-  const supabase = await createClient();
+  const supabase = await createWriteClient();
   const { data, error } = await supabase
     .from("staff_accounts")
     .insert({
@@ -192,6 +194,13 @@ export async function createStaffAccount(
     if (error.code === "23505") throw new Error("Username already exists");
     throw new Error(error.message);
   }
+  await requireAudit(supabase, {
+    actor: "admin",
+    entity: "staff_accounts",
+    entityId: data.id,
+    action: "insert",
+    after: toPublic(data as StaffAccountRow),
+  });
   return toPublic(data as StaffAccountRow);
 }
 
@@ -206,11 +215,19 @@ export async function updateStaffAccount(
     notes?: string;
   },
 ): Promise<StaffAccount> {
-  const supabase = await createClient();
+  const supabase = await createWriteClient();
 
   if (patch.active === false || patch.role === "desk") {
     await assertNotLastActiveAdmin(id, patch);
   }
+
+  const { data: before } = await supabase
+    .from("staff_accounts")
+    .select(
+      "id, username, display_name, role, active, notes, created_at, updated_at, password_hash",
+    )
+    .eq("id", id)
+    .maybeSingle();
 
   const updates: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
@@ -250,14 +267,20 @@ export async function updateStaffAccount(
     if (error.code === "23505") throw new Error("Username already exists");
     throw new Error(error.message);
   }
+  await requireAudit(supabase, {
+    actor: "admin",
+    entity: "staff_accounts",
+    entityId: id,
+    action: patch.active === false ? "deactivate" : "update",
+    before: before ? toPublic(before as StaffAccountRow) : null,
+    after: toPublic(data as StaffAccountRow),
+  });
   return toPublic(data as StaffAccountRow);
 }
 
+/** Soft-deactivate — hard DELETE is denied by RLS for anon. */
 export async function deleteStaffAccount(id: string): Promise<void> {
-  await assertNotLastActiveAdmin(id, { active: false });
-  const supabase = await createClient();
-  const { error } = await supabase.from("staff_accounts").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  await updateStaffAccount(id, { active: false });
 }
 
 async function assertNotLastActiveAdmin(

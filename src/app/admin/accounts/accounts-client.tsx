@@ -122,10 +122,11 @@ export function AccountsClient() {
     }
   }
 
+  // Soft-deactivate (hard DELETE is blocked by RLS)
   async function onDelete(a: StaffAccount) {
     if (
       !window.confirm(
-        `Delete account “${a.username}”? They will no longer be able to sign in.`,
+        `Deactivate account “${a.username}”? They will no longer be able to sign in. This does not permanently erase the row.`,
       )
     ) {
       return;
@@ -137,12 +138,12 @@ export function AccountsClient() {
         { method: "DELETE" },
       );
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Delete failed");
-      setToast(`Deleted ${a.username}`);
+      if (!res.ok) throw new Error(data.error || "Deactivate failed");
+      setToast(`Deactivated ${a.username}`);
       if (editingId === a.id) setEditingId(null);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Delete failed");
+      setError(err instanceof Error ? err.message : "Deactivate failed");
     }
   }
 
@@ -411,7 +412,7 @@ export function AccountsClient() {
                         onClick={() => void onDelete(a)}
                         className="inline-flex min-h-10 items-center rounded-lg border border-[var(--status-late-border)] bg-[var(--status-late-bg)] px-3 text-sm font-semibold text-[var(--status-late-ink)] hover:opacity-90 focus-ring"
                       >
-                        Delete
+                        Deactivate
                       </button>
                     </div>
                   </div>

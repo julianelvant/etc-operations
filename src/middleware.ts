@@ -20,6 +20,11 @@ export async function middleware(request: NextRequest) {
   const isAdminProtected =
     pathname.startsWith("/admin") || pathname.startsWith("/api/admin");
 
+  // Cron uses CRON_SECRET — skip cookie gate
+  if (pathname.startsWith("/api/cron")) {
+    return NextResponse.next();
+  }
+
   if (pathname === "/login" && session) {
     const home = session.role === "admin" ? "/admin" : "/desk";
     return NextResponse.redirect(new URL(home, request.url));

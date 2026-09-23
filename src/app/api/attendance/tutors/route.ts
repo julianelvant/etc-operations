@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { createWriteClient } from "@/lib/supabase/write";
+import { requireAudit } from "@/lib/data/backups";
 import {
   getBeirutParts,
   getScheduledShiftForTutor,
@@ -52,7 +54,7 @@ export async function POST(request: Request) {
   }
 
   const action = body.action as string;
-  const supabase = await createClient();
+  const supabase = await createWriteClient();
   const { date, dayKey } = getBeirutParts();
   const now = new Date().toISOString();
 
@@ -73,7 +75,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Tutor not found" }, { status: 404 });
     }
 
-    // Prevent duplicate open check-in for same tutor same day
     const { data: open } = await supabase
       .from("tutor_attendance")
       .select("id")
@@ -111,6 +112,22 @@ export async function POST(request: Request) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    try {
+      await requireAudit(supabase, {
+        actor: session.username,
+        entity: "tutor_attendance",
+        entityId: data.id,
+        action: "insert",
+        after: data,
+      });
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Audit failed" },
+        { status: 500 },
+      );
+    }
+
     return NextResponse.json({ row: data });
   }
 
@@ -145,6 +162,23 @@ export async function POST(request: Request) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    try {
+      await requireAudit(supabase, {
+        actor: session.username,
+        entity: "tutor_attendance",
+        entityId: id,
+        action: "checkout",
+        before: existing,
+        after: data,
+      });
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Audit failed" },
+        { status: 500 },
+      );
+    }
+
     return NextResponse.json({ row: data });
   }
 
@@ -153,6 +187,14 @@ export async function POST(request: Request) {
     if (!id) {
       return NextResponse.json({ error: "id required" }, { status: 400 });
     }
+    const { data: existing } = await supabase
+      .from("tutor_attendance")
+      .select(
+        "id, attendance_date, tutor_id, scheduled_shift, role, time_in, time_out, total_hours, notes",
+      )
+      .eq("id", id)
+      .maybeSingle();
+
     const patch: { notes?: string; role?: string } = {};
     if (body.notes !== undefined) patch.notes = String(body.notes);
     if (body.role !== undefined) {
@@ -175,6 +217,23 @@ export async function POST(request: Request) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    try {
+      await requireAudit(supabase, {
+        actor: session.username,
+        entity: "tutor_attendance",
+        entityId: id,
+        action: "update",
+        before: existing,
+        after: data,
+      });
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Audit failed" },
+        { status: 500 },
+      );
+    }
+
     return NextResponse.json({ row: data });
   }
 
@@ -186,7 +245,9 @@ export async function POST(request: Request) {
 
     const { data: existing, error: findError } = await supabase
       .from("tutor_attendance")
-      .select("id, time_in, time_out")
+      .select(
+        "id, time_in, time_out, scheduled_shift, role, notes, attendance_date, tutor_id, total_hours",
+      )
       .eq("id", id)
       .single();
     if (findError || !existing) {
@@ -269,6 +330,23 @@ export async function POST(request: Request) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    try {
+      await requireAudit(supabase, {
+        actor: session.username,
+        entity: "tutor_attendance",
+        entityId: id,
+        action: "set_times",
+        before: existing,
+        after: data,
+      });
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Audit failed" },
+        { status: 500 },
+      );
+    }
+
     return NextResponse.json({ row: data });
   }
 

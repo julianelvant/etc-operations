@@ -18,5 +18,5 @@ create index if not exists staff_accounts_role_idx on public.staff_accounts (rol
 alter table public.staff_accounts enable row level security;
 
 drop policy if exists staff_accounts_all on public.staff_accounts;
-create policy staff_accounts_all on public.staff_accounts
-  for all using (true) with check (true);
+-- Replaced by select/insert/update policies in 20260923_attendance_write_rpcs.sql
+-- (no DELETE — accounts are soft-deactivated).

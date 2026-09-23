@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { getBeirutParts, TIMEZONE } from "@/lib/schedule";
 import { ImportExcelHistoryButton } from "./import-excel-button";
+import { DataDurabilityPanel } from "./data-durability-panel";
 
 export const metadata: Metadata = {
   title: "Settings",
@@ -73,7 +74,8 @@ export default async function SettingsPage() {
       </dl>
 
       {isAdmin ? (
-        <div className="mt-8">
+        <div className="mt-8 space-y-8">
+          <DataDurabilityPanel />
           <ImportExcelHistoryButton />
         </div>
       ) : null}

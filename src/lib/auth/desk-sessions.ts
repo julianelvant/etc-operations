@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createWriteClient } from "@/lib/supabase/write";
 import type { SessionRole } from "@/lib/auth/session";
 
 export type DeskSessionRow = {
@@ -20,7 +21,7 @@ export async function recordSessionLogin(opts: {
   role: SessionRole;
   userAgent?: string | null;
 }) {
-  const supabase = await createClient();
+  const supabase = await createWriteClient();
   const now = new Date().toISOString();
   const { error } = await supabase.from("desk_sessions").upsert({
     id: opts.sessionId,
@@ -36,7 +37,7 @@ export async function recordSessionLogin(opts: {
 
 export async function recordSessionLogout(sessionId: string) {
   if (!sessionId) return;
-  const supabase = await createClient();
+  const supabase = await createWriteClient();
   const now = new Date().toISOString();
   await supabase
     .from("desk_sessions")
@@ -47,7 +48,7 @@ export async function recordSessionLogout(sessionId: string) {
 
 export async function touchSessionHeartbeat(sessionId: string) {
   if (!sessionId) return;
-  const supabase = await createClient();
+  const supabase = await createWriteClient();
   const now = new Date().toISOString();
   await supabase
     .from("desk_sessions")

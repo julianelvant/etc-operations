@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { createWriteClient } from "@/lib/supabase/write";
+import { requireAudit } from "@/lib/data/backups";
 import { getBeirutParts, minutesBetween } from "@/lib/schedule";
 
 export async function GET(request: Request) {
@@ -46,7 +48,7 @@ export async function POST(request: Request) {
   }
 
   const action = body.action as string;
-  const supabase = await createClient();
+  const supabase = await createWriteClient();
   const { date } = getBeirutParts();
   const now = new Date().toISOString();
 
@@ -84,6 +86,22 @@ export async function POST(request: Request) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    try {
+      await requireAudit(supabase, {
+        actor: session.username,
+        entity: "student_visits",
+        entityId: data.id,
+        action: "insert",
+        after: data,
+      });
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Audit failed" },
+        { status: 500 },
+      );
+    }
+
     return NextResponse.json({ row: data });
   }
 
@@ -118,6 +136,23 @@ export async function POST(request: Request) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    try {
+      await requireAudit(supabase, {
+        actor: session.username,
+        entity: "student_visits",
+        entityId: id,
+        action: "checkout",
+        before: existing,
+        after: data,
+      });
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Audit failed" },
+        { status: 500 },
+      );
+    }
+
     return NextResponse.json({ row: data });
   }
 
