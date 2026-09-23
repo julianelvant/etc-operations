@@ -1,22 +1,16 @@
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/auth/session";
 import { createWriteClient } from "@/lib/supabase/write";
-import { assertAnonCannotDelete, getDataHealth } from "@/lib/data/backups";
+import { getDataHealth } from "@/lib/data/backups";
 
 export async function GET() {
   try {
     await requireAdminSession();
     const supabase = await createWriteClient();
     const health = await getDataHealth(supabase);
-    let anonDeleteBlocked = true;
-    try {
-      anonDeleteBlocked = await assertAnonCannotDelete();
-    } catch {
-      anonDeleteBlocked = true;
-    }
     return NextResponse.json({
       ...health,
-      anon_delete_blocked: anonDeleteBlocked,
+      anon_delete_blocked: health.anon_can_delete_attendance !== false,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Failed";
