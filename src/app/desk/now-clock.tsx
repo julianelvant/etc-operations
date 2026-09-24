@@ -13,13 +13,7 @@ function formatBeirutClock(date: Date) {
 }
 
 /** Isolated clock so the 30s tick does not re-render the whole desk. */
-export function NowClock({
-  isToday,
-  compact = false,
-}: {
-  isToday: boolean;
-  compact?: boolean;
-}) {
+export function NowClock({ isToday }: { isToday: boolean }) {
   const [label, setLabel] = useState(() => formatBeirutClock(new Date()));
   const [mins, setMins] = useState(() =>
     beirutMinutes(new Date().toISOString()),
@@ -44,18 +38,6 @@ export function NowClock({
 
   const h = Math.floor(mins / 60);
   const quiet = h < 13 || h >= 18;
-
-  if (compact) {
-    return (
-      <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs text-muted">
-        <span
-          className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-brand"
-          aria-hidden
-        />
-        <span className="font-medium tabular-nums text-ink">{label}</span>
-      </span>
-    );
-  }
 
   return (
     <div className="min-w-0 text-sm">

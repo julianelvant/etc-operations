@@ -152,32 +152,30 @@ export function DeskClient({
         </div>
       )}
 
-      <div className="relative flex-1 overflow-y-auto px-4 py-4 lg:px-8 lg:py-5">
-        <div className="grid w-full gap-6 lg:grid-cols-[minmax(18rem,38%)_1fr] lg:items-start">
-          <div className="flex flex-col gap-6 lg:sticky lg:top-0 lg:max-h-[calc(100vh-12rem)] lg:overflow-y-auto">
-            <HereNowBoard
-              openTutors={live.openTutors}
-              tutors={tutors}
-              visitsByTutorId={live.visitsByTutorId}
-              highlightId={live.highlightId}
-              commentFocusId={live.commentFocusId}
-              isToday={isToday}
-              isPending={live.isPending}
-              onCheckOut={(id) => live.checkOutTutor(id)}
-              onAddStudent={(tutorId) => live.openStudentPanel(tutorId)}
-              onCheckOutStudent={live.checkOutStudent}
-              onUpdateTutorMeta={live.updateTutorMeta}
-              onEditTimes={(row) => setEditRow(row)}
-            />
+      <div className="relative flex-1 overflow-y-auto px-4 py-5 lg:px-8">
+        <div className="flex w-full flex-col gap-8">
+          <HereNowBoard
+            openTutors={live.openTutors}
+            tutors={tutors}
+            visitsByTutorId={live.visitsByTutorId}
+            highlightId={live.highlightId}
+            commentFocusId={live.commentFocusId}
+            isToday={isToday}
+            isPending={live.isPending}
+            onCheckOut={(id) => live.checkOutTutor(id)}
+            onAddStudent={(tutorId) => live.openStudentPanel(tutorId)}
+            onCheckOutStudent={live.checkOutStudent}
+            onUpdateTutorMeta={live.updateTutorMeta}
+            onEditTimes={(row) => setEditRow(row)}
+          />
 
-            <DueNowBoard
-              rows={boards.dueNow}
-              nameToTutor={nameToTutor}
-              isToday={isToday}
-              isPending={live.isPending}
-              onCheckIn={(t, shift) => live.checkInTutor(t, shift)}
-            />
-          </div>
+          <DueNowBoard
+            rows={boards.dueNow}
+            nameToTutor={nameToTutor}
+            isToday={isToday}
+            isPending={live.isPending}
+            onCheckIn={(t, shift) => live.checkInTutor(t, shift)}
+          />
 
           <DayCalendar
             date={date}
