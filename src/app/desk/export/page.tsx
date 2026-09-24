@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { getBeirutParts } from "@/lib/schedule";
@@ -26,6 +27,16 @@ export default async function ExportPage() {
       <div className="mt-8 surface-panel p-6">
         <ExportForm today={date} />
       </div>
+      <p className="mt-6 text-sm text-muted">
+        Need to edit rows online? Use the{" "}
+        <Link
+          href="/desk/editor"
+          className="font-semibold text-brand-ink underline focus-ring rounded"
+        >
+          Data editor
+        </Link>{" "}
+        — same columns as Excel, synced with the desk.
+      </p>
     </div>
   );
 }

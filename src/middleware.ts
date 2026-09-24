@@ -15,6 +15,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/attendance") ||
     pathname.startsWith("/api/export") ||
     pathname.startsWith("/api/import") ||
+    pathname.startsWith("/api/data-editor") ||
     pathname.startsWith("/api/session");
 
   const isAdminProtected =
@@ -65,6 +66,7 @@ export const config = {
     "/api/attendance/:path*",
     "/api/export",
     "/api/import/:path*",
+    "/api/data-editor",
     "/api/admin/:path*",
     "/api/session/:path*",
   ],
