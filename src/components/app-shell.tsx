@@ -57,14 +57,9 @@ export function AppShell({
           <div className="flex min-w-0 items-center gap-4 lg:gap-6">
             <Link
               href={homeHref}
-              className="flex shrink-0 items-center gap-2.5 focus-ring rounded-lg"
+              className="shrink-0 font-display text-lg font-semibold text-ink focus-ring rounded-lg"
             >
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand text-sm font-bold text-white">
-                E
-              </span>
-              <span className="font-display text-lg font-semibold text-ink">
-                {title}
-              </span>
+              {title}
             </Link>
             <nav
               className="hidden items-center gap-1 sm:flex"
