@@ -32,7 +32,7 @@ export function NowClock({ isToday }: { isToday: boolean }) {
 
   if (!isToday) {
     return (
-      <span className="text-sm text-slate-500">Viewing another day</span>
+      <span className="text-sm text-muted">Viewing another day</span>
     );
   }
 
@@ -40,13 +40,22 @@ export function NowClock({ isToday }: { isToday: boolean }) {
   const quiet = h < 13 || h >= 18;
 
   return (
-    <span className="inline-flex items-center gap-2 text-sm text-slate-600">
-      <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-      <span className="font-medium text-slate-800">Now {label}</span>
-      <span className="text-slate-400">Beirut</span>
+    <div className="min-w-0 text-sm">
+      <p className="flex items-center gap-2 whitespace-nowrap text-ink">
+        <span
+          className="inline-block h-2 w-2 shrink-0 rounded-full bg-brand"
+          aria-hidden
+        />
+        <span className="font-medium tabular-nums">Now {label}</span>
+        <span className="text-muted">· Beirut</span>
+      </p>
       {quiet ? (
-        <span className="text-slate-400">· outside tutoring hours</span>
+        <p className="mt-1">
+          <span className="inline-flex rounded-md border border-border bg-bg px-2 py-0.5 text-xs text-muted">
+            Outside tutoring hours
+          </span>
+        </p>
       ) : null}
-    </span>
+    </div>
   );
 }
