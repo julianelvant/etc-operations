@@ -10,6 +10,7 @@ import {
   type ShiftRole,
 } from "@/lib/schedule";
 import { formatShiftRange, shiftToMinutes } from "@/lib/shift-time";
+import { CourseList } from "./course-list";
 import { cardRailClass, RoleBadge } from "./role-badge";
 import { StatusPill } from "./status-pill";
 
@@ -136,7 +137,7 @@ function AgendaCard({
       <div className="flex items-start justify-between gap-3 px-4 py-3.5">
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-base font-semibold text-ink">{b.name}</p>
+            <p className="break-words text-base font-semibold text-ink">{b.name}</p>
             <RoleBadge role={b.role} />
             {b.isRecurring ? (
               <span
@@ -153,12 +154,7 @@ function AgendaCard({
             {formatShiftRange(b.shiftLabel)}
             {b.timeInLabel ? ` · in ${b.timeInLabel}` : ""}
           </p>
-          {b.courses.length > 0 ? (
-            <p className="text-xs leading-relaxed text-muted">
-              {b.courses.slice(0, 4).join(" · ")}
-              {b.courses.length > 4 ? ` +${b.courses.length - 4}` : ""}
-            </p>
-          ) : null}
+          <CourseList courses={b.courses} className="mt-1" />
         </div>
         {canCheckIn ? (
           <button

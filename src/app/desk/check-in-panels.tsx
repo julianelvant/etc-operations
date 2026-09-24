@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { TutorAttendanceRow, TutorRow } from "@/lib/attendance";
 import type { DeskPanel } from "./desk-types";
+import { CourseList } from "./course-list";
 
 const ROLE_OPTIONS = ["Tutor", "TA", "Coordinator", "Other"] as const;
 
@@ -219,16 +220,12 @@ export function CheckInPanels({
                       className="flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 text-left hover:border-emerald-400 hover:bg-emerald-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:opacity-60"
                     >
                       <span className="min-w-0">
-                        <span className="block font-medium text-slate-800">
+                        <span className="block break-words font-medium text-ink">
                           {t.name}
                         </span>
-                        {t.courses.length > 0 ? (
-                          <span className="block text-xs leading-snug text-slate-400 break-words">
-                            {t.courses.join(", ")}
-                          </span>
-                        ) : null}
+                        <CourseList courses={t.courses} className="mt-1.5" />
                       </span>
-                      <span className="w-20 shrink-0 text-right text-sm font-semibold text-emerald-700">
+                      <span className="w-20 shrink-0 text-right text-sm font-semibold text-brand-ink">
                         Check in
                       </span>
                     </button>

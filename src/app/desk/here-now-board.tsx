@@ -186,10 +186,10 @@ function HereNowCard({
             ▸
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-base font-semibold leading-snug sm:text-lg">
+            <span className="block break-words text-base font-semibold leading-snug sm:text-lg">
               {row.tutors?.name ?? "Tutor"}
             </span>
-            <span className="mt-0.5 block truncate text-sm tabular-nums text-muted">
+            <span className="mt-0.5 block text-sm tabular-nums text-muted">
               {meta}
               {openStudents.length > 0
                 ? ` · ${openStudents.length} student${
@@ -361,10 +361,15 @@ function OfferedCourses({
                 key={course}
                 type="button"
                 aria-expanded={selected}
+                aria-label={
+                  hereCount > 0
+                    ? `${hereCount} tutor${hereCount === 1 ? "" : "s"} here for ${course}`
+                    : course
+                }
                 onClick={() =>
                   setOpenCourse((c) => (c === course ? null : course))
                 }
-                className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition focus-ring ${
+                className={`inline-flex max-w-full items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition focus-ring ${
                   selected
                     ? "border-brand bg-brand text-white"
                     : hereCount > 0
@@ -372,16 +377,16 @@ function OfferedCourses({
                       : "border-border bg-surface text-ink hover:border-slate-300"
                 }`}
               >
-                <span className="max-w-[9rem] truncate">{course}</span>
+                <span className="break-words text-left">{course}</span>
                 {hereCount > 0 ? (
                   <span
-                    className={`rounded px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
+                    className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
                       selected
                         ? "bg-white/20 text-white"
                         : "bg-brand text-white"
                     }`}
                   >
-                    {hereCount}
+                    {hereCount} here
                   </span>
                 ) : null}
               </button>
@@ -403,7 +408,7 @@ function OfferedCourses({
                     : "bg-bg text-muted"
                 }`}
               >
-                <span className="max-w-[10rem] truncate">{t.name}</span>
+                <span className="break-words">{t.name}</span>
                 {here ? (
                   <span className="text-[10px] font-bold uppercase opacity-90">
                     Here

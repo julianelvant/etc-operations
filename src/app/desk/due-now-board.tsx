@@ -57,7 +57,7 @@ export function DueNowBoard({
                 className="flex items-center justify-between gap-4 px-5 py-3.5"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-base font-semibold text-ink">
+                  <p className="break-words text-base font-semibold text-ink">
                     {row.name}
                   </p>
                   <p className="mt-0.5 whitespace-nowrap text-sm tabular-nums text-muted">

@@ -14,6 +14,7 @@ import {
   getMergedShiftsForDay,
   type MergedShift,
 } from "@/lib/schedule";
+import { formatShiftRange } from "@/lib/shift-time";
 import type { SlotMap, WeekDay } from "./desk-types";
 import { NowClock } from "./now-clock";
 
@@ -156,7 +157,7 @@ export function OpsBar({
     <div className="border-b border-border bg-bg/95 backdrop-blur">
       <div className="flex flex-col gap-3 px-4 py-3 lg:px-6">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
               type="button"
               onClick={() => router.push("/desk")}
@@ -181,7 +182,11 @@ export function OpsBar({
               }}
               className="input-field min-h-11 w-auto"
             />
-            {isToday ? <NowClock isToday={isToday} /> : null}
+            {isToday ? (
+              <div className="hidden min-w-0 sm:block">
+                <NowClock isToday={isToday} />
+              </div>
+            ) : null}
           </div>
 
           <div className="ml-auto flex gap-2">
@@ -193,6 +198,12 @@ export function OpsBar({
             </button>
           </div>
         </div>
+
+        {isToday ? (
+          <div className="w-full sm:hidden">
+            <NowClock isToday={isToday} />
+          </div>
+        ) : null}
 
         <form onSubmit={onSubmit} className="relative">
           <label className="block">
@@ -242,15 +253,19 @@ export function OpsBar({
                       }`}
                     >
                       <span className="min-w-0">
-                        <span className="block truncate font-medium text-ink">
+                        <span className="block break-words font-medium text-ink">
                           {hit.name}
                         </span>
-                        <span className="block truncate text-xs text-muted">
+                        <span className="mt-0.5 block text-xs text-muted">
                           {hit.shift
-                            ? hit.shift.shiftLabel
+                            ? formatShiftRange(hit.shift.shiftLabel)
                             : "Walk-in · not on schedule"}
-                          {hit.courses[0] ? ` · ${hit.courses[0]}` : ""}
                         </span>
+                        {hit.courses[0] ? (
+                          <span className="mt-1 inline-flex max-w-full break-words rounded-md border border-border bg-bg px-2 py-0.5 text-[11px] text-muted">
+                            {hit.courses[0]}
+                          </span>
+                        ) : null}
                       </span>
                       <span className="shrink-0 text-sm font-semibold text-brand-ink">
                         {inNow ? "Here" : "Check in"}
