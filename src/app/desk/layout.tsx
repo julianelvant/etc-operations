@@ -23,6 +23,7 @@ export default async function DeskLayout({
         username={session.username}
         navItems={[
           { href: `/desk?date=${date}`, label: "Desk", match: "exact" },
+          { href: "/desk/editor", label: "Data", match: "prefix" },
           { href: "/desk/export", label: "Export", match: "prefix" },
           { href: "/desk/settings", label: "Settings", match: "prefix" },
         ]}
