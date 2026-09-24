@@ -1,3 +1,4 @@
+import { applyPmHeuristic, parseClockToken } from "@/lib/shift-time";
 import { TIMEZONE } from "@/lib/schedule";
 
 /** ISO timestamp → YYYY-MM-DD in Beirut. */
@@ -26,6 +27,40 @@ export function isoToBeirutTime(iso: string | null | undefined): string {
   );
   const hour = parts.hour === "24" ? "00" : parts.hour;
   return `${hour}:${parts.minute}`;
+}
+
+const DEFAULT_TIME = "13:00";
+
+/** Normalize free-text clock input to HH:MM (24h, Beirut tutoring afternoon). */
+export function normalizeBeirutClockInput(time: string): string {
+  const trimmed = time.trim();
+  if (!trimmed) return DEFAULT_TIME;
+
+  const parsed = parseClockToken(trimmed);
+  if (parsed) {
+    const hour = parsed.hadMeridiem ? parsed.hour : applyPmHeuristic(parsed.hour);
+    return `${String(hour).padStart(2, "0")}:${String(parsed.minute).padStart(2, "0")}`;
+  }
+
+  const loose = trimmed.match(/(\d{1,2})\s*:\s*(\d{2})/);
+  if (loose) {
+    const hour = applyPmHeuristic(Number(loose[1]));
+    return `${String(hour).padStart(2, "0")}:${loose[2]}`;
+  }
+
+  return DEFAULT_TIME;
+}
+
+/** YYYY-MM-DD + free-text time → ISO string (lenient, Excel-like). */
+export function beirutDateTimeFromInput(date: string, time: string): string {
+  const normalizedDate = date.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalizedDate)) {
+    throw new Error("Invalid date");
+  }
+  return beirutDateTimeToIso(
+    normalizedDate,
+    normalizeBeirutClockInput(time),
+  );
 }
 
 /** YYYY-MM-DD + HH:MM (Beirut wall) → ISO string. */

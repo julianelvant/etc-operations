@@ -400,8 +400,11 @@ export function SpreadsheetClient({ today }: { today: string }) {
       </div>
 
       <p className="text-sm text-muted">
-        Edit cells like Excel — each row saves to the same database as the desk and
-        export. Changes appear on the desk immediately after saving.
+        Edit freely like Excel — type any tutor or student name, use times like{" "}
+        <span className="font-mono">1:30 pm</span> or{" "}
+        <span className="font-mono">13:30</span>, and leave cells blank when you
+        are not sure. New tutors are created automatically on save. Each row
+        updates the same live data as the desk and export.
       </p>
 
       {tab === "tutors" ? (
