@@ -64,7 +64,7 @@ export function HereNowBoard({
         </div>
 
         {openTutors.length === 0 ? (
-          <div className="surface-panel border-dashed px-5 py-8 text-center">
+          <div className="surface-panel border-dashed px-5 py-5 text-center">
             <p className="text-base font-semibold text-ink">
               No one checked in yet
             </p>
@@ -99,7 +99,11 @@ export function HereNowBoard({
         )}
       </section>
 
-      <OfferedCourses tutors={tutors} hereIds={hereIds} />
+      <OfferedCourses
+        tutors={tutors}
+        hereIds={hereIds}
+        defaultCollapsed={openTutors.length === 0}
+      />
     </div>
   );
 }
@@ -309,10 +313,13 @@ function HereNowCard({
 function OfferedCourses({
   tutors,
   hereIds,
+  defaultCollapsed = false,
 }: {
   tutors: TutorRow[];
   hereIds: Set<string>;
+  defaultCollapsed?: boolean;
 }) {
+  const [sectionOpen, setSectionOpen] = useState(!defaultCollapsed);
   const [openCourse, setOpenCourse] = useState<string | null>(null);
 
   const byCourse = useMemo(() => {
@@ -340,19 +347,26 @@ function OfferedCourses({
 
   return (
     <section className="space-y-2" aria-labelledby="offered-courses-heading">
-      <h2
-        id="offered-courses-heading"
-        className="text-sm font-semibold text-ink"
+      <button
+        type="button"
+        onClick={() => setSectionOpen((o) => !o)}
+        className="flex w-full items-center justify-between text-left focus-ring rounded lg:pointer-events-none lg:cursor-default"
+        aria-expanded={sectionOpen}
       >
-        Offered courses
-        <span className="ml-2 font-normal tabular-nums text-muted">
-          {byCourse.length}
+        <h2 id="offered-courses-heading" className="text-sm font-semibold text-ink">
+          Offered courses
+          <span className="ml-2 font-normal tabular-nums text-muted">
+            {byCourse.length}
+          </span>
+        </h2>
+        <span className="text-sm text-muted lg:hidden" aria-hidden="true">
+          {sectionOpen ? "▴" : "▾"}
         </span>
-      </h2>
+      </button>
 
       {byCourse.length === 0 ? (
-        <p className="text-xs text-muted">No courses yet.</p>
-      ) : (
+        sectionOpen ? <p className="text-xs text-muted">No courses yet.</p> : null
+      ) : sectionOpen ? (
         <div className="flex flex-wrap gap-1.5">
           {byCourse.map(({ course, hereCount }) => {
             const selected = openCourse === course;
@@ -393,9 +407,9 @@ function OfferedCourses({
             );
           })}
         </div>
-      )}
+      ) : null}
 
-      {active ? (
+      {sectionOpen && active ? (
         <ul className="flex flex-wrap gap-1.5 rounded-lg border border-border bg-surface p-2">
           {active.tutors.map((t) => {
             const here = hereIds.has(t.id);

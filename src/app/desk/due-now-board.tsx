@@ -40,7 +40,7 @@ export function DueNowBoard({
       </div>
 
       {rows.length === 0 ? (
-        <div className="surface-panel border-dashed px-5 py-8 text-center">
+        <div className="surface-panel border-dashed px-5 py-5 text-center">
           <p className="text-sm font-medium text-ink">Nobody due right now</p>
           <p className="mt-1 text-sm text-muted">
             Use search or Walk-in when someone arrives early.
@@ -60,7 +60,7 @@ export function DueNowBoard({
                   <p className="break-words text-base font-semibold text-ink">
                     {row.name}
                   </p>
-                  <p className="mt-0.5 whitespace-nowrap text-sm tabular-nums text-muted">
+                  <p className="mt-0.5 break-words text-sm tabular-nums text-muted">
                     {slotLabel(row.shiftLabel)}
                   </p>
                 </div>
