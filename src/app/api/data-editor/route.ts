@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import { beirutDateTimeToIso } from "@/lib/beirut-datetime";
+import { beirutDateTimeFromInput } from "@/lib/beirut-datetime";
 import { requireAudit } from "@/lib/data/backups";
 import {
+  ensureTutorIdByName,
   fetchEditorData,
-  resolveTutorIdByName,
 } from "@/lib/data-editor";
-import { hoursBetween, minutesBetween } from "@/lib/schedule";
+import { getBeirutParts, hoursBetween, minutesBetween } from "@/lib/schedule";
 import { createWriteClient } from "@/lib/supabase/write";
 
 function parseRange(url: URL): { from: string; to: string } | null {
@@ -81,44 +81,36 @@ export async function POST(request: Request) {
   }
 }
 
+function resolveEditorDate(raw: string): string {
+  const trimmed = raw.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+  return getBeirutParts().date;
+}
+
 async function saveTutorRow(
   supabase: Awaited<ReturnType<typeof createWriteClient>>,
   actor: string,
   row: Record<string, unknown>,
 ) {
-  const date = String(row.date ?? "").trim();
+  const date = resolveEditorDate(String(row.date ?? ""));
   const tutorName = String(row.tutorName ?? "").trim();
   const scheduledShift = String(row.scheduledShift ?? "").trim();
   const role = String(row.role ?? "Tutor").trim() || "Tutor";
   const notes = String(row.notes ?? "");
-  const timeInStr = String(row.timeIn ?? "").trim();
-  const timeOutStr = String(row.timeOut ?? "").trim();
+  const timeInStr = String(row.timeIn ?? "");
+  const timeOutStr = String(row.timeOut ?? "");
   const id = row.id ? String(row.id) : "";
 
-  if (!date || !tutorName || !timeInStr) {
-    return NextResponse.json(
-      { error: "date, tutorName, and timeIn are required" },
-      { status: 400 },
-    );
-  }
+  const tutorId = await ensureTutorIdByName(supabase, tutorName);
 
-  const tutorId = await resolveTutorIdByName(supabase, tutorName);
-  if (!tutorId) {
-    return NextResponse.json(
-      { error: `Tutor not found: ${tutorName}` },
-      { status: 400 },
-    );
-  }
-
-  const timeIn = beirutDateTimeToIso(date, timeInStr);
-  const timeOut = timeOutStr ? beirutDateTimeToIso(date, timeOutStr) : null;
-  if (timeOut && new Date(timeOut).getTime() < new Date(timeIn).getTime()) {
-    return NextResponse.json(
-      { error: "Time out must be after time in" },
-      { status: 400 },
-    );
-  }
-  const totalHours = timeOut ? hoursBetween(timeIn, timeOut) : null;
+  const timeIn = beirutDateTimeFromInput(date, timeInStr);
+  const timeOut = timeOutStr.trim()
+    ? beirutDateTimeFromInput(date, timeOutStr)
+    : null;
+  const totalHours =
+    timeOut && new Date(timeOut).getTime() >= new Date(timeIn).getTime()
+      ? hoursBetween(timeIn, timeOut)
+      : null;
 
   if (id) {
     const { data: existing } = await supabase
@@ -199,43 +191,29 @@ async function saveVisitRow(
   actor: string,
   row: Record<string, unknown>,
 ) {
-  const date = String(row.date ?? "").trim();
-  const studentName = String(row.studentName ?? "").trim();
+  const date = resolveEditorDate(String(row.date ?? ""));
+  const studentName = String(row.studentName ?? "").trim() || "Unnamed";
   const studentEmail = String(row.studentEmail ?? "").trim();
   const course = String(row.course ?? "").trim();
   const notes = String(row.notes ?? "");
   const tutorName = String(row.tutorName ?? "").trim();
-  const timeInStr = String(row.timeIn ?? "").trim();
-  const timeOutStr = String(row.timeOut ?? "").trim();
+  const timeInStr = String(row.timeIn ?? "");
+  const timeOutStr = String(row.timeOut ?? "");
   const id = row.id ? String(row.id) : "";
 
-  if (!date || !studentName || !timeInStr) {
-    return NextResponse.json(
-      { error: "date, studentName, and timeIn are required" },
-      { status: 400 },
-    );
-  }
-
-  let tutorId: string | null = String(row.tutorId ?? "") || null;
+  let tutorId: string | null = null;
   if (tutorName) {
-    tutorId = await resolveTutorIdByName(supabase, tutorName);
-    if (!tutorId) {
-      return NextResponse.json(
-        { error: `Tutor not found: ${tutorName}` },
-        { status: 400 },
-      );
-    }
+    tutorId = await ensureTutorIdByName(supabase, tutorName);
   }
 
-  const timeIn = beirutDateTimeToIso(date, timeInStr);
-  const timeOut = timeOutStr ? beirutDateTimeToIso(date, timeOutStr) : null;
-  if (timeOut && new Date(timeOut).getTime() < new Date(timeIn).getTime()) {
-    return NextResponse.json(
-      { error: "Time out must be after time in" },
-      { status: 400 },
-    );
-  }
-  const durationMinutes = timeOut ? minutesBetween(timeIn, timeOut) : null;
+  const timeIn = beirutDateTimeFromInput(date, timeInStr);
+  const timeOut = timeOutStr.trim()
+    ? beirutDateTimeFromInput(date, timeOutStr)
+    : null;
+  const durationMinutes =
+    timeOut && new Date(timeOut).getTime() >= new Date(timeIn).getTime()
+      ? minutesBetween(timeIn, timeOut)
+      : null;
 
   const payload = {
     visit_date: date,

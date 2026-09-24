@@ -95,6 +95,20 @@ export async function fetchEditorData(
   return { tutors, visits };
 }
 
+function titleCaseName(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((w) =>
+      w.length <= 2 && w.toLowerCase() === w
+        ? w.toLowerCase()
+        : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(),
+    )
+    .join(" ")
+    .replace(/\bAl\b/g, "al")
+    .replace(/\bEl\b/g, "El");
+}
+
 export async function resolveTutorIdByName(
   supabase: SupabaseClient,
   name: string,
@@ -112,4 +126,33 @@ export async function resolveTutorIdByName(
   if (exact) return exact.id;
   if (data?.length === 1) return data[0].id;
   return null;
+}
+
+/** Match existing tutor or create one — no "tutor not found" gate. */
+export async function ensureTutorIdByName(
+  supabase: SupabaseClient,
+  name: string,
+): Promise<string> {
+  const trimmed = name.trim() || "Unnamed";
+  const existing = await resolveTutorIdByName(supabase, trimmed);
+  if (existing) return existing;
+
+  const display = titleCaseName(trimmed);
+  const { data: inserted, error } = await supabase
+    .from("tutors")
+    .insert({ name: display, courses: [], active: true })
+    .select("id, name")
+    .single();
+
+  if (error) {
+    const { data: again } = await supabase
+      .from("tutors")
+      .select("id, name")
+      .ilike("name", display)
+      .maybeSingle();
+    if (again?.id) return again.id;
+    throw new Error(`Failed to create tutor: ${error.message}`);
+  }
+
+  return inserted.id;
 }

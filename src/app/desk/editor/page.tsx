@@ -21,8 +21,9 @@ export default async function DataEditorPage() {
       </h1>
       <p className="mt-2 max-w-2xl text-sm text-muted">
         Spreadsheet view of tutor attendance and student visits — same columns as
-        the Excel export. Edit, add, or remove rows; saves go directly to the
-        database and sync with the desk.
+        the Excel export. Edit freely, add or remove rows, and save any time.
+        New tutor names are created automatically; everything stays linked to
+        the desk and export.
       </p>
       <div className="mt-8">
         <SpreadsheetClient today={date} />
