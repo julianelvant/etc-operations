@@ -132,10 +132,8 @@ export function OpsBar({
   useEffect(() => {
     if (!menuOpen) return;
     function onClick(e: MouseEvent) {
-      const target = e.target as HTMLElement;
-      if (!target.closest("[aria-label='More options']") && !target.closest("button[aria-haspopup='dialog']")) {
-        setMenuOpen(false);
-      }
+      if (menuRef.current?.contains(e.target as Node)) return;
+      setMenuOpen(false);
     }
     window.addEventListener("click", onClick);
     return () => window.removeEventListener("click", onClick);
@@ -219,7 +217,7 @@ export function OpsBar({
             })}
           </div>
 
-          <div className="relative shrink-0">
+          <div ref={menuRef} className="relative shrink-0">
             <button
               type="button"
               onClick={() => setMenuOpen((o) => !o)}
