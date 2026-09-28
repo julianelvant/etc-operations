@@ -7,7 +7,7 @@ Tutor check-in and student visit logging for the Engineering Tutoring Center, ma
 - Next.js (App Router) on Vercel
 - Supabase (tutors, attendance, student visits)
 - Static weekly schedule seeded from the Excel general schedule
-- Desk login (shared staff credentials)
+- Desk login (shared administrative assistant credentials)
 
 ## Local development
 
@@ -28,7 +28,7 @@ Tutor check-in and student visit logging for the Engineering Tutoring Center, ma
 
 ## Desk flow
 
-1. Sign in with staff credentials
+1. Sign in once with administrative assistant credentials (session stays active)
 2. Today’s schedule is prefilled — check tutors in/out with one tap
 3. Log student visits linked to a tutor (course + notes)
 4. Export a date range to Excel (General schedule / Tutors / Tutoree sheets)

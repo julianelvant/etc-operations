@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import type { StudentVisitRow, TutorAttendanceRow, TutorRow } from "@/lib/attendance";
 import type { DeskSessionRow } from "@/lib/auth/desk-sessions";
+import { roleLabel } from "@/lib/auth/roles";
 import type { CalendarRecurringRow } from "@/lib/calendar-recurring";
 import {
   buildDayShifts,
@@ -146,7 +147,7 @@ export function AdminClient({
         </div>
         {activeSessions.length === 0 ? (
           <p className="mt-3 text-sm text-muted">
-            No desk or admin accounts currently active.
+            No administrative assistants currently active.
           </p>
         ) : (
           <ul className="mt-4 flex flex-wrap gap-2">
@@ -160,7 +161,7 @@ export function AdminClient({
                   aria-hidden
                 />
                 <span className="font-semibold">{s.username}</span>
-                <span className="opacity-70">{s.role}</span>
+                <span className="opacity-70">{roleLabel(s.role)}</span>
                 <span className="text-xs opacity-60">
                   seen {fmtWhen(s.last_seen_at)}
                 </span>
@@ -341,7 +342,9 @@ export function AdminClient({
       <section className="overflow-hidden surface-panel">
         <div className="border-b border-border px-5 py-4">
           <h2 className="text-base font-semibold text-ink">Login history</h2>
-          <p className="text-sm text-muted">Desk and admin account sessions</p>
+          <p className="text-sm text-muted">
+            Administrative assistant sign-ins (sessions stay active on device)
+          </p>
         </div>
         <div className="max-h-[22rem] overflow-auto">
           <table className="w-full min-w-[40rem] text-left text-sm">
@@ -370,7 +373,9 @@ export function AdminClient({
                     <td className="px-4 py-3 font-medium text-slate-900">
                       {s.username}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">{s.role}</td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {roleLabel(s.role)}
+                    </td>
                     <td className="px-4 py-3 tabular-nums text-slate-700">
                       {fmtWhen(s.logged_in_at)}
                     </td>
