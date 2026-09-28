@@ -1,7 +1,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { listCalendarRecurring } from "@/lib/calendar-recurring";
-import { ensureTutorIdByName } from "@/lib/data-editor";
-import { loadScheduleDays } from "@/lib/schedule-roster";
+import {
+  isPersonRecurring,
+  listCalendarRecurring,
+} from "@/lib/calendar-recurring";
+import {
+  ensureTutorIdByName,
+  resolveTutorIdByName,
+  titleCaseName,
+} from "@/lib/data-editor";
+import {
+  isPersonOnSchedule,
+  loadScheduleDays,
+} from "@/lib/schedule-roster";
 
 function mergeCourses(existing: string[], next: string[]): string[] {
   return Array.from(
@@ -16,22 +26,67 @@ export async function ensureTutorForPerson(
   courses: string[] = [],
 ): Promise<string> {
   const tutorId = await ensureTutorIdByName(supabase, name);
-  if (courses.length === 0) return tutorId;
+  const patch: { active: boolean; courses?: string[] } = { active: true };
 
-  const { data: row } = await supabase
-    .from("tutors")
-    .select("courses")
-    .eq("id", tutorId)
-    .maybeSingle();
+  if (courses.length > 0) {
+    const { data: row } = await supabase
+      .from("tutors")
+      .select("courses")
+      .eq("id", tutorId)
+      .maybeSingle();
 
-  const merged = mergeCourses(
-    Array.isArray(row?.courses) ? row.courses : [],
-    courses,
-  );
-  if (merged.length === 0) return tutorId;
+    patch.courses = mergeCourses(
+      Array.isArray(row?.courses) ? row.courses : [],
+      courses,
+    );
+  }
 
-  await supabase.from("tutors").update({ courses: merged }).eq("id", tutorId);
+  await supabase.from("tutors").update(patch).eq("id", tutorId);
   return tutorId;
+}
+
+/** Rename the tutors row when a schedule/recurring name changes. */
+export async function renameTutorByName(
+  supabase: SupabaseClient,
+  oldName: string,
+  newName: string,
+): Promise<void> {
+  const from = oldName.trim();
+  const to = newName.trim();
+  if (!from || !to || from.toLowerCase() === to.toLowerCase()) return;
+
+  const tutorId = await resolveTutorIdByName(supabase, from);
+  if (!tutorId) {
+    await ensureTutorForPerson(supabase, to);
+    return;
+  }
+
+  const { error } = await supabase
+    .from("tutors")
+    .update({ name: titleCaseName(to), active: true })
+    .eq("id", tutorId);
+
+  if (error) throw new Error(error.message);
+}
+
+/** Hide a tutor from desk search when they are no longer on the roster or recurring list. */
+export async function deactivateTutorIfOffSchedule(
+  supabase: SupabaseClient,
+  name: string,
+): Promise<void> {
+  const key = name.trim().toLowerCase();
+  if (!key) return;
+
+  const [onRoster, onRecurring] = await Promise.all([
+    isPersonOnSchedule(supabase, name),
+    isPersonRecurring(supabase, name),
+  ]);
+  if (onRoster || onRecurring) return;
+
+  const tutorId = await resolveTutorIdByName(supabase, name);
+  if (!tutorId) return;
+
+  await supabase.from("tutors").update({ active: false }).eq("id", tutorId);
 }
 
 /** Create missing tutors rows for everyone on the live roster + recurring list. */

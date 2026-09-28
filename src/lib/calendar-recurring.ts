@@ -148,3 +148,32 @@ export async function deactivateCalendarRecurring(
 ): Promise<CalendarRecurringRow> {
   return updateCalendarRecurring(supabase, id, { active: false });
 }
+
+/** Rename every active recurring entry that uses the old display name. */
+export async function renamePersonInRecurring(
+  supabase: SupabaseClient,
+  oldName: string,
+  newName: string,
+): Promise<void> {
+  const from = oldName.trim();
+  const to = newName.trim();
+  if (!from || !to || from.toLowerCase() === to.toLowerCase()) return;
+
+  const { error } = await supabase
+    .from("calendar_recurring")
+    .update({ display_name: to })
+    .eq("active", true)
+    .ilike("display_name", from);
+
+  if (error) throw new Error(error.message);
+}
+
+export async function isPersonRecurring(
+  supabase: SupabaseClient,
+  name: string,
+): Promise<boolean> {
+  const key = name.trim().toLowerCase();
+  if (!key) return false;
+  const rows = await listCalendarRecurring(supabase, { activeOnly: true });
+  return rows.some((r) => r.display_name.toLowerCase() === key);
+}

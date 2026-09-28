@@ -95,7 +95,7 @@ export async function fetchEditorData(
   return { tutors, visits };
 }
 
-function titleCaseName(name: string): string {
+export function titleCaseName(name: string): string {
   return name
     .trim()
     .split(/\s+/)

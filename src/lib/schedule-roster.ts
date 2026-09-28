@@ -231,3 +231,33 @@ export async function deleteScheduleRosterEntry(
     .eq("id", id);
   if (error) throw new Error(error.message);
 }
+
+/** Rename every active roster slot that uses the old name (keeps grid in sync). */
+export async function renamePersonOnRoster(
+  supabase: SupabaseClient,
+  oldName: string,
+  newName: string,
+): Promise<void> {
+  const from = oldName.trim();
+  const to = newName.trim();
+  if (!from || !to || from.toLowerCase() === to.toLowerCase()) return;
+
+  const { error } = await supabase
+    .from("schedule_roster")
+    .update({ person_name: to })
+    .eq("active", true)
+    .ilike("person_name", from);
+
+  if (error) throw new Error(error.message);
+}
+
+export async function isPersonOnSchedule(
+  supabase: SupabaseClient,
+  name: string,
+): Promise<boolean> {
+  const key = name.trim().toLowerCase();
+  if (!key) return false;
+
+  const rows = await listScheduleRoster(supabase, { activeOnly: true });
+  return rows.some((r) => r.person_name.toLowerCase() === key);
+}

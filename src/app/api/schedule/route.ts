@@ -6,15 +6,23 @@ import {
   ensureScheduleRosterSeeded,
   listScheduleRoster,
   loadScheduleDays,
+  renamePersonOnRoster,
   rosterToSlots,
   collectTimeSlots,
   updateScheduleRosterEntry,
   type ScheduleRosterRole,
 } from "@/lib/schedule-roster";
-import { listCalendarRecurring } from "@/lib/calendar-recurring";
+import {
+  listCalendarRecurring,
+  renamePersonInRecurring,
+} from "@/lib/calendar-recurring";
 import { schedule } from "@/lib/schedule";
 import { logAttendanceEvent } from "@/lib/data/audit";
-import { ensureTutorForPerson } from "@/lib/tutor-sync";
+import {
+  deactivateTutorIfOffSchedule,
+  ensureTutorForPerson,
+  renameTutorByName,
+} from "@/lib/tutor-sync";
 import { createWriteClient } from "@/lib/supabase/write";
 
 const ROLES: ScheduleRosterRole[] = ["Tutor", "TA", "Coordinator", "Other"];
@@ -156,13 +164,27 @@ export async function PATCH(request: Request) {
     if (body.role !== undefined) patch.role = parseRole(body.role);
 
     const supabase = await createWriteClient();
+    const before = (await listScheduleRoster(supabase, { activeOnly: true })).find(
+      (row) => row.id === id,
+    );
+    if (!before) {
+      return NextResponse.json({ error: "Entry not found" }, { status: 404 });
+    }
+
+    if (
+      patch.person_name &&
+      String(patch.person_name).trim().toLowerCase() !==
+        before.person_name.toLowerCase()
+    ) {
+      const newName = String(patch.person_name).trim();
+      await renamePersonOnRoster(supabase, before.person_name, newName);
+      await renamePersonInRecurring(supabase, before.person_name, newName);
+      await renameTutorByName(supabase, before.person_name, newName);
+    }
+
     const entry = await updateScheduleRosterEntry(supabase, id, patch);
 
-    await ensureTutorForPerson(
-      supabase,
-      entry.person_name,
-      entry.courses,
-    );
+    await ensureTutorForPerson(supabase, entry.person_name, entry.courses);
 
     await logAttendanceEvent(supabase, {
       actor: session.username,
@@ -196,7 +218,15 @@ export async function DELETE(request: Request) {
     }
 
     const supabase = await createWriteClient();
+    const before = (await listScheduleRoster(supabase, { activeOnly: true })).find(
+      (row) => row.id === id,
+    );
+    if (!before) {
+      return NextResponse.json({ error: "Entry not found" }, { status: 404 });
+    }
+
     await deleteScheduleRosterEntry(supabase, id);
+    await deactivateTutorIfOffSchedule(supabase, before.person_name);
 
     await logAttendanceEvent(supabase, {
       actor: session.username,

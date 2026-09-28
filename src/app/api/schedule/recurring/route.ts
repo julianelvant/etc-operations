@@ -4,12 +4,18 @@ import {
   createCalendarRecurring,
   deactivateCalendarRecurring,
   listCalendarRecurring,
+  renamePersonInRecurring,
   updateCalendarRecurring,
   WEEKDAY_KEYS,
   type CalendarRecurringRole,
 } from "@/lib/calendar-recurring";
 import { logAttendanceEvent } from "@/lib/data/audit";
-import { ensureTutorForPerson } from "@/lib/tutor-sync";
+import { renamePersonOnRoster } from "@/lib/schedule-roster";
+import {
+  deactivateTutorIfOffSchedule,
+  ensureTutorForPerson,
+  renameTutorByName,
+} from "@/lib/tutor-sync";
 import { createWriteClient } from "@/lib/supabase/write";
 
 const ROLES: CalendarRecurringRole[] = [
@@ -156,6 +162,21 @@ export async function PATCH(request: Request) {
 
     const supabase = await createWriteClient();
     const before = (await listCalendarRecurring(supabase)).find((e) => e.id === id);
+    if (!before) {
+      return NextResponse.json({ error: "Entry not found" }, { status: 404 });
+    }
+
+    if (
+      patch.display_name &&
+      String(patch.display_name).trim().toLowerCase() !==
+        before.display_name.toLowerCase()
+    ) {
+      const newName = String(patch.display_name).trim();
+      await renamePersonOnRoster(supabase, before.display_name, newName);
+      await renamePersonInRecurring(supabase, before.display_name, newName);
+      await renameTutorByName(supabase, before.display_name, newName);
+    }
+
     const entry = await updateCalendarRecurring(supabase, id, patch);
 
     const name = String(patch.display_name ?? entry.display_name);
@@ -194,7 +215,12 @@ export async function DELETE(request: Request) {
 
     const supabase = await createWriteClient();
     const before = (await listCalendarRecurring(supabase)).find((e) => e.id === id);
+    if (!before) {
+      return NextResponse.json({ error: "Entry not found" }, { status: 404 });
+    }
+
     const entry = await deactivateCalendarRecurring(supabase, id);
+    await deactivateTutorIfOffSchedule(supabase, before.display_name);
 
     await logAttendanceEvent(supabase, {
       actor: session.username,
