@@ -4,11 +4,18 @@ import {
   createCalendarRecurring,
   deactivateCalendarRecurring,
   listCalendarRecurring,
+  renamePersonInRecurring,
   updateCalendarRecurring,
   WEEKDAY_KEYS,
   type CalendarRecurringRole,
 } from "@/lib/calendar-recurring";
 import { logAttendanceEvent } from "@/lib/data/audit";
+import { renamePersonOnRoster } from "@/lib/schedule-roster";
+import {
+  deactivateTutorIfOffSchedule,
+  ensureTutorForPerson,
+  renameTutorByName,
+} from "@/lib/tutor-sync";
 import { createWriteClient } from "@/lib/supabase/write";
 
 const ROLES: CalendarRecurringRole[] = [
@@ -51,12 +58,13 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const supabase = await createWriteClient();
-    const entries = await listCalendarRecurring(supabase);
+    const entries = await listCalendarRecurring(supabase, { activeOnly: true });
     return NextResponse.json({ entries });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Failed";
-    const status = msg === "Unauthorized" ? 401 : 500;
-    return NextResponse.json({ error: msg }, { status });
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Failed" },
+      { status: 500 },
+    );
   }
 }
 
@@ -71,6 +79,7 @@ export async function POST(request: Request) {
     const days = parseDays(body.days);
     const start_time = String(body.start_time ?? "").slice(0, 5);
     const end_time = String(body.end_time ?? "").slice(0, 5);
+    const courses = parseCourses(body.courses);
 
     if (!display_name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -101,9 +110,11 @@ export async function POST(request: Request) {
       days,
       start_time,
       end_time,
-      courses: parseCourses(body.courses),
+      courses,
       notes: String(body.notes ?? "").trim(),
     });
+
+    await ensureTutorForPerson(supabase, display_name, courses);
 
     await logAttendanceEvent(supabase, {
       actor: session.username,
@@ -115,9 +126,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, entry });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Failed";
-    const status = msg === "Unauthorized" ? 401 : 500;
-    return NextResponse.json({ error: msg }, { status });
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Failed" },
+      { status: 500 },
+    );
   }
 }
 
@@ -147,11 +159,29 @@ export async function PATCH(request: Request) {
     }
     if (body.courses !== undefined) patch.courses = parseCourses(body.courses);
     if (body.notes !== undefined) patch.notes = String(body.notes).trim();
-    if (body.active !== undefined) patch.active = Boolean(body.active);
 
     const supabase = await createWriteClient();
     const before = (await listCalendarRecurring(supabase)).find((e) => e.id === id);
+    if (!before) {
+      return NextResponse.json({ error: "Entry not found" }, { status: 404 });
+    }
+
+    if (
+      patch.display_name &&
+      String(patch.display_name).trim().toLowerCase() !==
+        before.display_name.toLowerCase()
+    ) {
+      const newName = String(patch.display_name).trim();
+      await renamePersonOnRoster(supabase, before.display_name, newName);
+      await renamePersonInRecurring(supabase, before.display_name, newName);
+      await renameTutorByName(supabase, before.display_name, newName);
+    }
+
     const entry = await updateCalendarRecurring(supabase, id, patch);
+
+    const name = String(patch.display_name ?? entry.display_name);
+    const courses = (patch.courses as string[] | undefined) ?? entry.courses;
+    await ensureTutorForPerson(supabase, name, courses);
 
     await logAttendanceEvent(supabase, {
       actor: session.username,
@@ -164,9 +194,10 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ ok: true, entry });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Failed";
-    const status = msg === "Unauthorized" ? 401 : 500;
-    return NextResponse.json({ error: msg }, { status });
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Failed" },
+      { status: 500 },
+    );
   }
 }
 
@@ -184,7 +215,12 @@ export async function DELETE(request: Request) {
 
     const supabase = await createWriteClient();
     const before = (await listCalendarRecurring(supabase)).find((e) => e.id === id);
+    if (!before) {
+      return NextResponse.json({ error: "Entry not found" }, { status: 404 });
+    }
+
     const entry = await deactivateCalendarRecurring(supabase, id);
+    await deactivateTutorIfOffSchedule(supabase, before.display_name);
 
     await logAttendanceEvent(supabase, {
       actor: session.username,
@@ -197,8 +233,9 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({ ok: true, entry });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Failed";
-    const status = msg === "Unauthorized" ? 401 : 500;
-    return NextResponse.json({ error: msg }, { status });
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Failed" },
+      { status: 500 },
+    );
   }
 }

@@ -3,11 +3,18 @@ import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { createWriteClient } from "@/lib/supabase/write";
 import { requireAudit } from "@/lib/data/backups";
+import { listRecurringForDay } from "@/lib/calendar-recurring";
 import {
+  beirutMinutes,
   getBeirutParts,
+  getMergedShiftsForDay,
   getScheduledShiftForTutor,
   hoursBetween,
+  isTutorCheckInBlocked,
+  mergeRecurringIntoShifts,
+  recurringRowToShift,
 } from "@/lib/schedule";
+import { loadScheduleDays } from "@/lib/schedule-roster";
 
 export async function GET(request: Request) {
   const session = await getSession();
@@ -89,9 +96,29 @@ export async function POST(request: Request) {
       );
     }
 
+    const scheduleDays = await loadScheduleDays(supabase);
+    const recurring = await listRecurringForDay(supabase, dayKey);
+    const slots = scheduleDays[dayKey] ?? {};
+    const rosterShifts = getMergedShiftsForDay(slots);
+    const recurringShifts = recurring.map(recurringRowToShift);
+    const dayShifts = mergeRecurringIntoShifts(rosterShifts, recurringShifts);
+    const nowMin = beirutMinutes(now);
+
+    if (
+      isTutorCheckInBlocked(tutorId, tutor.name, dayShifts, nowMin, new Set(), [])
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Check-in is only allowed during the scheduled window — not before shift or more than 15 minutes late",
+        },
+        { status: 403 },
+      );
+    }
+
     const scheduledShift =
       String(body.scheduledShift ?? "") ||
-      getScheduledShiftForTutor(tutor.name, dayKey);
+      getScheduledShiftForTutor(tutor.name, dayKey, scheduleDays);
 
     const { data, error } = await supabase
       .from("tutor_attendance")

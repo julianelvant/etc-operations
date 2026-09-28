@@ -101,6 +101,9 @@ export function DeskClient({
         slots={slots}
         tutors={tutors}
         checkedInIds={live.checkedInIds}
+        nowMin={live.nowMin}
+        dayShifts={dayShifts}
+        closedIntervals={live.closedIntervals}
         onCheckIn={(t, shift) => live.checkInTutor(t, shift)}
         onWalkIn={live.openTutorPanel}
         onAddStudent={() => live.openStudentPanel()}
@@ -183,6 +186,7 @@ export function DeskClient({
             attendance={live.attendance}
             nameToTutor={nameToTutor}
             checkedInIds={live.checkedInIds}
+            nowMin={live.nowMin}
             isToday={isToday}
             isPending={live.isPending}
             onCheckIn={(t, shift) => live.checkInTutor(t, shift)}
@@ -217,6 +221,9 @@ export function DeskClient({
         openTutors={live.openTutors}
         checkedInIds={live.checkedInIds}
         isToday={isToday}
+        nowMin={live.nowMin}
+        dayShifts={dayShifts}
+        closedIntervals={live.closedIntervals}
         isPending={live.isPending}
         defaultTutorId={live.defaultTutorId}
         initialQuery={searchSeed}

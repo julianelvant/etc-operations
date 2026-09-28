@@ -11,7 +11,10 @@ import {
 } from "react";
 import type { TutorRow } from "@/lib/attendance";
 import {
+  canCheckInToShift,
   getMergedShiftsForDay,
+  isTutorCheckInBlocked,
+  type AttendanceInterval,
   type MergedShift,
 } from "@/lib/schedule";
 import { formatShiftRange } from "@/lib/shift-time";
@@ -34,6 +37,9 @@ type Props = {
   slots: SlotMap;
   tutors: TutorRow[];
   checkedInIds: Set<string>;
+  nowMin: number;
+  dayShifts: MergedShift[];
+  closedIntervals: AttendanceInterval[];
   onCheckIn: (tutor: TutorRow, scheduledShift?: string) => void;
   onWalkIn: () => void;
   onAddStudent: () => void;
@@ -48,6 +54,9 @@ export function OpsBar({
   slots,
   tutors,
   checkedInIds,
+  nowMin,
+  dayShifts,
+  closedIntervals,
   onCheckIn,
   onWalkIn,
   onAddStudent,
@@ -154,7 +163,7 @@ export function OpsBar({
   }
 
   return (
-    <div className="border-b border-border bg-bg/95 backdrop-blur">
+    <div className="relative z-50 border-b border-border bg-bg/95 backdrop-blur">
       <div className="flex flex-col gap-3 px-4 py-3 lg:px-6">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap items-center gap-1.5">
@@ -232,7 +241,7 @@ export function OpsBar({
             <ul
               id="ops-search-results"
               role="listbox"
-              className="absolute inset-x-0 top-full z-30 mt-1 max-h-80 overflow-y-auto rounded-lg border border-border bg-surface py-1 shadow-lg"
+              className="absolute inset-x-0 top-full z-[60] mt-1 max-h-80 overflow-y-auto rounded-lg border border-border bg-surface py-1 shadow-lg"
             >
               {hits.map((hit, i) => {
                 const inNow = hit.tutor
@@ -241,11 +250,31 @@ export function OpsBar({
                 const pending = hit.tutor
                   ? isPending(`in:${hit.tutor.id}`)
                   : false;
+                const shiftBlocked = hit.tutor
+                  ? hit.shift
+                    ? !canCheckInToShift(
+                        hit.shift,
+                        nowMin,
+                        checkedInIds,
+                        closedIntervals,
+                        hit.tutor.id,
+                      )
+                    : isTutorCheckInBlocked(
+                        hit.tutor.id,
+                        hit.tutor.name,
+                        dayShifts,
+                        nowMin,
+                        checkedInIds,
+                        closedIntervals,
+                      )
+                  : true;
+                const disabled =
+                  !hit.tutor || inNow || pending || !isToday || shiftBlocked;
                 return (
                   <li key={hit.key} role="option" aria-selected={i === active}>
                     <button
                       type="button"
-                      disabled={!hit.tutor || inNow || pending || !isToday}
+                      disabled={disabled}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => selectHit(hit)}
                       className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left focus-ring disabled:opacity-50 ${
@@ -268,7 +297,11 @@ export function OpsBar({
                         ) : null}
                       </span>
                       <span className="shrink-0 text-sm font-semibold text-brand-ink">
-                        {inNow ? "Here" : "Check in"}
+                        {inNow
+                          ? "Here"
+                          : shiftBlocked && hit.shift
+                            ? "Not now"
+                            : "Check in"}
                       </span>
                     </button>
                   </li>

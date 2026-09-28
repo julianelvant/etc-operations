@@ -76,10 +76,9 @@ export function getTodaySchedule() {
   return { date, dayKey, time, slots: daySlots };
 }
 
-/** Parse YYYY-MM-DD as a Beirut calendar day and return schedule slots. */
-export function getScheduleForDate(dateStr: string) {
-  const parts = getBeirutParts(new Date(`${dateStr}T12:00:00+03:00`));
-  // Prefer weekday from the date string itself for stability
+export type DaySlots = Record<string, ScheduledTutor[]>;
+
+function weekdayKeyForDate(dateStr: string): (typeof DAY_KEYS)[number] {
   const [y, m, d] = dateStr.split("-").map(Number);
   const utcGuess = new Date(Date.UTC(y, m - 1, d, 9, 0, 0));
   const weekday = new Intl.DateTimeFormat("en-US", {
@@ -88,12 +87,21 @@ export function getScheduleForDate(dateStr: string) {
   })
     .format(utcGuess)
     .toLowerCase();
-  const dayKey = weekday as (typeof DAY_KEYS)[number];
+  return weekday as (typeof DAY_KEYS)[number];
+}
+
+/** Parse YYYY-MM-DD as a Beirut calendar day and return schedule slots. */
+export function getScheduleForDate(
+  dateStr: string,
+  days: Record<string, DaySlots> = schedule.days,
+) {
+  const parts = getBeirutParts(new Date(`${dateStr}T12:00:00+03:00`));
+  const dayKey = weekdayKeyForDate(dateStr);
   return {
     date: dateStr,
     dayKey,
     time: parts.date === dateStr ? parts.time : "12:00",
-    slots: schedule.days[dayKey] ?? {},
+    slots: days[dayKey] ?? {},
     isToday: parts.date === dateStr,
   };
 }
@@ -343,8 +351,9 @@ export function getMergedShiftsForDay(
 export function getScheduledShiftForTutor(
   tutorName: string,
   dayKey: string,
+  days: Record<string, DaySlots> = schedule.days,
 ): string {
-  const day = schedule.days[dayKey];
+  const day = days[dayKey];
   if (!day) return "";
   const shifts = getMergedShiftsForDay(day).filter(
     (s) => s.name.toLowerCase() === tutorName.toLowerCase(),
@@ -554,6 +563,45 @@ export type ShiftBoards = {
 };
 
 /** Split today's merged shifts into due-now / later / done (excludes Here). */
+/** Block check-in when someone is on today's schedule but outside the due window. */
+export function isTutorCheckInBlocked(
+  tutorId: string,
+  tutorName: string,
+  shifts: MergedShift[],
+  nowMin: number,
+  openTutorIds: Set<string> = new Set(),
+  closedIntervals: AttendanceInterval[] = [],
+): boolean {
+  const tutorShifts = shifts.filter(
+    (s) => s.name.toLowerCase() === tutorName.toLowerCase(),
+  );
+  if (tutorShifts.length === 0) return false;
+  if (openTutorIds.has(tutorId)) return true;
+
+  const allowed = tutorShifts.some((s) =>
+    canCheckInToShift(s, nowMin, openTutorIds, closedIntervals, tutorId),
+  );
+  return !allowed;
+}
+
+/** True when a scheduled shift is in the check-in window (not early, late, or ended). */
+export function canCheckInToShift(
+  shift: MergedShift,
+  nowMin: number,
+  openTutorIds: Set<string> = new Set(),
+  closedIntervals: AttendanceInterval[] = [],
+  tutorId?: string,
+): boolean {
+  const status = getShiftStatus(
+    shift,
+    nowMin,
+    openTutorIds,
+    closedIntervals,
+    tutorId,
+  );
+  return status === "due";
+}
+
 export function bucketShiftsForDesk(
   shifts: MergedShift[],
   nowMin: number,

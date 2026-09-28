@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
+import { getSession, refreshSession } from "@/lib/auth/session";
 import { touchSessionHeartbeat } from "@/lib/auth/desk-sessions";
 
 /** Desk + admin clients can heartbeat their own session. */
@@ -12,6 +12,7 @@ export async function POST() {
     return NextResponse.json({ ok: true, skipped: true });
   }
   try {
+    await refreshSession(session);
     await touchSessionHeartbeat(session.sessionId);
     return NextResponse.json({ ok: true });
   } catch (e) {
