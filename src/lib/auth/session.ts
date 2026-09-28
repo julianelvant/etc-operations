@@ -1,10 +1,12 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import type { SessionRole } from "@/lib/auth/roles";
 
 const COOKIE_NAME = "etc_desk_session";
-const SESSION_TTL_SECONDS = 60 * 60 * 12; // 12 hours
+/** Shared desk terminals stay signed in until the cookie is cleared manually. */
+const SESSION_TTL_SECONDS = 60 * 60 * 24 * 400; // 400 days
 
-export type SessionRole = "desk" | "admin";
+export type { SessionRole } from "@/lib/auth/roles";
 
 export type DeskSession = {
   username: string;
@@ -124,6 +126,12 @@ export async function setSessionCookie(token: string) {
     path: "/",
     maxAge: SESSION_TTL_SECONDS,
   });
+}
+
+/** Re-issue JWT + cookie so active tabs stay signed in without re-entering credentials. */
+export async function refreshSession(session: DeskSession): Promise<void> {
+  const token = await createSessionToken(session);
+  await setSessionCookie(token);
 }
 
 export async function clearSessionCookie() {

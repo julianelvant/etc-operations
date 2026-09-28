@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { logoutAction } from "@/app/login/actions";
 
 export type ShellNavItem = {
   href: string;
@@ -89,11 +88,6 @@ export function AppShell({
             <span className="hidden text-sm text-muted md:inline">
               {username}
             </span>
-            <form action={logoutAction}>
-              <button type="submit" className="btn-secondary min-h-9 px-3 py-1.5">
-                Log out
-              </button>
-            </form>
           </div>
         </div>
         <nav

@@ -30,8 +30,8 @@ export default async function LoginPage({
             Sign in
           </h1>
           <p className="mt-2 text-sm text-muted">
-            Desk and admin accounts use this same door — you&apos;ll land in the
-            right place.
+            Administrative assistants and admins sign in here once — sessions
+            stay active on this device.
           </p>
         </div>
         <LoginForm next={next} />

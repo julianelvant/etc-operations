@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { SessionRole } from "@/lib/auth/session";
+import { roleLabel, type SessionRole } from "@/lib/auth/roles";
 import type { StaffAccount } from "@/lib/auth/staff-accounts";
 
 const inputClass = "input-field";
@@ -151,11 +151,12 @@ export function AccountsClient() {
     <div className="space-y-8">
       <header className="space-y-2">
         <h1 className="font-display text-2xl font-semibold text-ink sm:text-3xl">
-          Staff accounts
+          Administrative assistants
         </h1>
         <p className="max-w-2xl text-sm text-muted">
-          Create and manage desk and admin logins — display name, username,
-          password, role, and notes. Changes apply on the next sign-in.
+          Create and manage administrative assistant and admin logins — display
+          name, username, password, role, and notes. Sessions stay signed in on
+          shared desk devices.
         </p>
       </header>
 
@@ -193,7 +194,7 @@ export function AccountsClient() {
                 setForm((f) => ({ ...f, displayName: e.target.value }))
               }
               className={inputClass}
-              placeholder="Front desk"
+              placeholder="ETC front desk"
             />
           </Field>
           <Field label="Username">
@@ -232,7 +233,7 @@ export function AccountsClient() {
               }
               className={inputClass}
             >
-              <option value="desk">Desk</option>
+              <option value="desk">Administrative assistant</option>
               <option value="admin">Admin</option>
             </select>
           </Field>
@@ -274,7 +275,8 @@ export function AccountsClient() {
           <div className="px-5 py-10 text-center">
             <p className="text-sm font-medium text-ink">No accounts yet</p>
             <p className="mt-1 text-sm text-muted">
-              Create a desk or admin account using the form above.
+              Create an administrative assistant or admin account using the form
+              above.
             </p>
             <button
               type="button"
@@ -339,7 +341,7 @@ export function AccountsClient() {
                         }
                         className={inputClass}
                       >
-                        <option value="desk">Desk</option>
+                        <option value="desk">Administrative assistant</option>
                         <option value="admin">Admin</option>
                       </select>
                     </Field>
@@ -452,7 +454,7 @@ function RoleBadge({ role }: { role: SessionRole }) {
           : "bg-bg text-ink ring-1 ring-border"
       }`}
     >
-      {role}
+      {roleLabel(role)}
     </span>
   );
 }

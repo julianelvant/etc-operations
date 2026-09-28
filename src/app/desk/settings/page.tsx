@@ -63,7 +63,7 @@ export default async function SettingsPage() {
                   href="/admin/accounts"
                   className="font-semibold text-brand-ink underline focus-ring rounded"
                 >
-                  Admin → Accounts
+                  Admin → Administrative assistants
                 </Link>
                 .
               </>

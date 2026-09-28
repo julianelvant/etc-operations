@@ -535,3 +535,191 @@ export async function importAttendanceFromTemplate(
   const buffer = await loadTemplateBuffer();
   return importAttendanceFromBuffer(supabase, buffer, createdBy);
 }
+
+function parseCsvLine(line: string): string[] {
+  const out: string[] = [];
+  let cur = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
+    if (ch === "," && !inQuotes) {
+      out.push(cur);
+      cur = "";
+      continue;
+    }
+    cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
+
+function csvDateToIso(raw: string): string | null {
+  const text = raw.trim().replace(/[`']/g, "");
+  const m = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  const month = m[1].padStart(2, "0");
+  const day = m[2].padStart(2, "0");
+  return `${m[3]}-${month}-${day}`;
+}
+
+function clockFromCsvText(
+  date: string,
+  raw: string,
+): string | null {
+  const text = raw.trim();
+  if (!text || text === ":") return null;
+  return beirutIsoFromDateAndTime(date, text);
+}
+
+/** Parse Tutors-sheet CSV export (date, name, shift, role, times, notes). */
+export function parseTutorsCsv(content: string): {
+  tutors: ParsedTutorRow[];
+  warnings: string[];
+} {
+  const warnings: string[] = [];
+  const tutors: ParsedTutorRow[] = [];
+  const lines = content.split(/\r?\n/);
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const cols = parseCsvLine(line);
+    if (i === 0 && cols[0]?.toLowerCase() === "date") continue;
+
+    const nameRaw = (cols[1] ?? "").trim();
+    if (!nameRaw) continue;
+
+    const date = csvDateToIso(cols[0] ?? "");
+    if (!date) {
+      warnings.push(`Row ${i + 1}: skip (bad date "${cols[0] ?? ""}")`);
+      continue;
+    }
+
+    const shiftRaw = (cols[2] ?? "").trim();
+    const normalized = normalizeScheduledShift(shiftRaw);
+    if (shiftRaw && !normalized) {
+      warnings.push(`Row ${i + 1}: could not parse shift "${shiftRaw}"`);
+    }
+
+    const timeIn = clockFromCsvText(date, cols[4] ?? "");
+    const timeOut = clockFromCsvText(date, cols[5] ?? "");
+    const defaultIn = `${date}T13:00:00${BEIRUT_OFFSET}`;
+    const resolvedIn = timeIn ?? defaultIn;
+    let resolvedOut = timeOut;
+    if (resolvedIn && resolvedOut && resolvedOut < resolvedIn) {
+      const clock = excelClockParts(cols[5] ?? "");
+      if (clock && clock.hour < 12) {
+        const hh = String(clock.hour + 12).padStart(2, "0");
+        const mm = String(clock.minute).padStart(2, "0");
+        resolvedOut = `${date}T${hh}:${mm}:00${BEIRUT_OFFSET}`;
+      }
+    }
+
+    tutors.push({
+      date,
+      name: canonicalTutorName(nameRaw),
+      scheduledShift: shiftRaw || normalized?.canonical || "",
+      role: (cols[3] ?? "").trim() || "Tutor",
+      timeIn: resolvedIn,
+      timeOut: resolvedOut,
+      totalHours: parseTotalHours(cols[6] ?? "", resolvedIn, resolvedOut),
+      notes: (cols[7] ?? "").trim(),
+    });
+  }
+
+  return { tutors, warnings };
+}
+
+export async function clearAllAttendanceData(
+  supabase: SupabaseClient,
+): Promise<void> {
+  const { error: visitErr } = await supabase
+    .from("student_visits")
+    .delete()
+    .gte("visit_date", "1900-01-01");
+  if (visitErr) throw new Error(visitErr.message);
+
+  const { error: attErr } = await supabase
+    .from("tutor_attendance")
+    .delete()
+    .gte("attendance_date", "1900-01-01");
+  if (attErr) throw new Error(attErr.message);
+}
+
+export async function importTutorsCsvReplaceAll(
+  supabase: SupabaseClient,
+  csvContent: string,
+  createdBy = "csv-import",
+): Promise<ImportSummary> {
+  const parsed = parseTutorsCsv(csvContent);
+  await clearAllAttendanceData(supabase);
+
+  const summary: ImportSummary = {
+    tutorsCreated: 0,
+    attendanceInserted: 0,
+    attendanceSkipped: 0,
+    visitsInserted: 0,
+    visitsSkipped: 0,
+    warnings: [...parsed.warnings],
+  };
+
+  const { data: allTutors, error: tutorsErr } = await supabase
+    .from("tutors")
+    .select("id, name");
+  if (tutorsErr) throw new Error(tutorsErr.message);
+
+  const tutorCache = new Map<string, string>();
+  for (const t of allTutors ?? []) {
+    tutorCache.set(normalizeTutorKey(t.name), t.id);
+  }
+  const created = { count: 0 };
+  const timeInKeys = new Map<string, number>();
+
+  for (const row of parsed.tutors) {
+    const tutorId = await ensureTutorId(
+      supabase,
+      row.name,
+      tutorCache,
+      created,
+    );
+    const baseKey = `${row.date}|${tutorId}|${row.timeIn}`;
+    const bump = timeInKeys.get(baseKey) ?? 0;
+    timeInKeys.set(baseKey, bump + 1);
+    let storedTimeIn = row.timeIn!;
+    if (bump > 0) {
+      const d = new Date(storedTimeIn);
+      d.setSeconds(d.getSeconds() + bump);
+      storedTimeIn = d.toISOString();
+      summary.warnings.push(
+        `Duplicate clock-in ${row.date} ${row.name}: stored with +${bump}s offset for DB uniqueness`,
+      );
+    }
+
+    const { error } = await supabase.from("tutor_attendance").insert({
+      attendance_date: row.date,
+      tutor_id: tutorId,
+      scheduled_shift: row.scheduledShift,
+      role: row.role.replace(/\s+$/, "") || "Tutor",
+      time_in: storedTimeIn,
+      time_out: row.timeOut,
+      total_hours: row.totalHours,
+      notes: row.notes,
+      created_by: createdBy,
+    });
+    if (error) {
+      summary.warnings.push(
+        `Attendance insert failed ${row.date} ${row.name}: ${error.message}`,
+      );
+      summary.attendanceSkipped += 1;
+      continue;
+    }
+    summary.attendanceInserted += 1;
+  }
+
+  summary.tutorsCreated = created.count;
+  return summary;
+}
