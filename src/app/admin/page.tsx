@@ -12,6 +12,7 @@ import {
 } from "@/lib/attendance";
 import { listRecurringForDay } from "@/lib/calendar-recurring";
 import { getBeirutParts, getScheduleForDate, getWeekDates } from "@/lib/schedule";
+import { loadScheduleDays } from "@/lib/schedule-roster";
 import { createClient } from "@/lib/supabase/server";
 import { createWriteClient } from "@/lib/supabase/write";
 import { AdminClient } from "./admin-client";
@@ -36,11 +37,11 @@ export default async function AdminPage({
       ? params.date
       : today;
 
-  const { dayKey, slots, isToday } = getScheduleForDate(date);
-  const week = getWeekDates(date);
-
   const supabase = await createClient();
   const writeClient = await createWriteClient();
+  const scheduleDays = await loadScheduleDays(writeClient);
+  const { dayKey, slots, isToday } = getScheduleForDate(date, scheduleDays);
+  const week = getWeekDates(date);
   const [
     tutors,
     attendanceBase,

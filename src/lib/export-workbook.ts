@@ -4,6 +4,7 @@ import path from "path";
 import JSZip from "jszip";
 import { createClient } from "@/lib/supabase/server";
 import { schedule, slotLabel, TIMEZONE } from "@/lib/schedule";
+import { loadScheduleDays } from "@/lib/schedule-roster";
 
 /** YYYY-MM-DD → Excel Date at noon UTC (date-only cell). */
 function excelDate(isoDate: string): Date {
@@ -119,7 +120,10 @@ function groupRowsByDate<T>(rows: T[], getDate: (row: T) => string): Map<string,
   return map;
 }
 
-function fillScheduleSheet(ws: ExcelJS.Worksheet) {
+function fillScheduleSheet(
+  ws: ExcelJS.Worksheet,
+  scheduleDays: Record<string, Record<string, { name: string; courses: string[] }[]>>,
+) {
   const title =
     schedule.title || "ETC General Tutoring Schedule (All Courses)";
   ws.getCell(1, 1).value = title;
@@ -127,7 +131,7 @@ function fillScheduleSheet(ws: ExcelJS.Worksheet) {
   const days = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
   const allSlots = new Set<string>();
   for (const d of days) {
-    Object.keys(schedule.days[d] ?? {}).forEach((s) => allSlots.add(s));
+    Object.keys(scheduleDays[d] ?? {}).forEach((s) => allSlots.add(s));
   }
   const slots = Array.from(allSlots).sort();
 
@@ -137,7 +141,7 @@ function fillScheduleSheet(ws: ExcelJS.Worksheet) {
     const row = ws.getRow(rowIdx);
     row.getCell(1).value = slotLabel(slot);
     for (let c = 0; c < days.length; c++) {
-      const tutors = schedule.days[days[c]]?.[slot] ?? [];
+      const tutors = scheduleDays[days[c]]?.[slot] ?? [];
       row.getCell(c + 2).value = tutors
         .map((t) =>
           t.courses.length
@@ -239,13 +243,15 @@ export async function buildAttendanceWorkbook(from: string, to: string) {
   if (aErr) throw new Error(aErr.message);
   if (vErr) throw new Error(vErr.message);
 
+  const scheduleDays = await loadScheduleDays(supabase);
+
   const wb = await loadTemplateWorkbook();
   wb.creator = "ETC Operations";
   wb.created = new Date();
   wb.modified = new Date();
 
   const sched = wb.getWorksheet("General schedule");
-  if (sched) fillScheduleSheet(sched);
+  if (sched) fillScheduleSheet(sched, scheduleDays);
 
   const tutorsSheet = replaceSheet(wb, "Tutors", TUTOR_WIDTHS);
   const headerTutor = tutorsSheet.getRow(1);

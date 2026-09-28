@@ -8,6 +8,7 @@ import {
   getScheduledShiftForTutor,
   hoursBetween,
 } from "@/lib/schedule";
+import { loadScheduleDays } from "@/lib/schedule-roster";
 
 export async function GET(request: Request) {
   const session = await getSession();
@@ -89,9 +90,10 @@ export async function POST(request: Request) {
       );
     }
 
+    const scheduleDays = await loadScheduleDays(supabase);
     const scheduledShift =
       String(body.scheduledShift ?? "") ||
-      getScheduledShiftForTutor(tutor.name, dayKey);
+      getScheduledShiftForTutor(tutor.name, dayKey, scheduleDays);
 
     const { data, error } = await supabase
       .from("tutor_attendance")

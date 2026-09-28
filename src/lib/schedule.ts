@@ -76,10 +76,9 @@ export function getTodaySchedule() {
   return { date, dayKey, time, slots: daySlots };
 }
 
-/** Parse YYYY-MM-DD as a Beirut calendar day and return schedule slots. */
-export function getScheduleForDate(dateStr: string) {
-  const parts = getBeirutParts(new Date(`${dateStr}T12:00:00+03:00`));
-  // Prefer weekday from the date string itself for stability
+export type DaySlots = Record<string, ScheduledTutor[]>;
+
+function weekdayKeyForDate(dateStr: string): (typeof DAY_KEYS)[number] {
   const [y, m, d] = dateStr.split("-").map(Number);
   const utcGuess = new Date(Date.UTC(y, m - 1, d, 9, 0, 0));
   const weekday = new Intl.DateTimeFormat("en-US", {
@@ -88,12 +87,21 @@ export function getScheduleForDate(dateStr: string) {
   })
     .format(utcGuess)
     .toLowerCase();
-  const dayKey = weekday as (typeof DAY_KEYS)[number];
+  return weekday as (typeof DAY_KEYS)[number];
+}
+
+/** Parse YYYY-MM-DD as a Beirut calendar day and return schedule slots. */
+export function getScheduleForDate(
+  dateStr: string,
+  days: Record<string, DaySlots> = schedule.days,
+) {
+  const parts = getBeirutParts(new Date(`${dateStr}T12:00:00+03:00`));
+  const dayKey = weekdayKeyForDate(dateStr);
   return {
     date: dateStr,
     dayKey,
     time: parts.date === dateStr ? parts.time : "12:00",
-    slots: schedule.days[dayKey] ?? {},
+    slots: days[dayKey] ?? {},
     isToday: parts.date === dateStr,
   };
 }
@@ -343,8 +351,9 @@ export function getMergedShiftsForDay(
 export function getScheduledShiftForTutor(
   tutorName: string,
   dayKey: string,
+  days: Record<string, DaySlots> = schedule.days,
 ): string {
-  const day = schedule.days[dayKey];
+  const day = days[dayKey];
   if (!day) return "";
   const shifts = getMergedShiftsForDay(day).filter(
     (s) => s.name.toLowerCase() === tutorName.toLowerCase(),

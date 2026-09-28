@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdminSession } from "@/lib/auth/session";
+import { getSession } from "@/lib/auth/session";
 import {
   createCalendarRecurring,
   deactivateCalendarRecurring,
@@ -46,7 +46,10 @@ function parseCourses(value: unknown): string[] {
 
 export async function GET() {
   try {
-    await requireAdminSession();
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const supabase = await createWriteClient();
     const entries = await listCalendarRecurring(supabase);
     return NextResponse.json({ entries });
@@ -59,7 +62,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await requireAdminSession();
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const body = await request.json().catch(() => ({}));
     const display_name = String(body.display_name ?? "").trim();
     const days = parseDays(body.days);
@@ -117,7 +123,10 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const session = await requireAdminSession();
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const body = await request.json().catch(() => ({}));
     const id = String(body.id ?? "");
     if (!id) {
@@ -163,7 +172,10 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const session = await requireAdminSession();
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const body = await request.json().catch(() => ({}));
     const id = String(body.id ?? "");
     if (!id) {
