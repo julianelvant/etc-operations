@@ -102,13 +102,40 @@ function styleHeaderRow(row: ExcelJS.Row, colCount: number) {
 /** Blank blue band between calendar days (matches attendance template). */
 function writeDaySeparator(ws: ExcelJS.Worksheet, rowIdx: number, colCount: number) {
   const sep = ws.getRow(rowIdx);
-  sep.height = 10;
+  sep.height = 12;
   for (let c = 1; c <= colCount; c++) {
     const cell = sep.getCell(c);
     cell.value = null;
     cell.fill = BLUE_SEP;
+    cell.border = {
+      top: { style: "thin", color: { argb: "FF0070C0" } },
+      bottom: { style: "thin", color: { argb: "FF0070C0" } },
+      left: { style: "thin", color: { argb: "FF0070C0" } },
+      right: { style: "thin", color: { argb: "FF0070C0" } },
+    };
   }
   sep.commit();
+}
+
+function sortedDatesInRange(from: string, to: string): string[] {
+  const out: string[] = [];
+  const start = new Date(`${from}T12:00:00Z`);
+  const end = new Date(`${to}T12:00:00Z`);
+  for (let d = start; d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+    out.push(d.toISOString().slice(0, 10));
+  }
+  return out;
+}
+
+function groupRowsByDate<T>(rows: T[], getDate: (row: T) => string): Map<string, T[]> {
+  const map = new Map<string, T[]>();
+  for (const row of rows) {
+    const date = getDate(row);
+    const list = map.get(date) ?? [];
+    list.push(row);
+    map.set(date, list);
+  }
+  return map;
 }
 
 function buildScheduleSheet(wb: ExcelJS.Workbook) {
@@ -262,40 +289,50 @@ export async function buildAttendanceWorkbook(from: string, to: string) {
   styleHeaderRow(headerTutor, TUTOR_HEADERS.length);
   headerTutor.commit();
 
-  let lastDate = "";
+  const attendanceByDate = groupRowsByDate(
+    attendance ?? [],
+    (row) => row.attendance_date,
+  );
+  const tutorDates = sortedDatesInRange(from, to).filter((d) =>
+    attendanceByDate.has(d),
+  );
   let excelRowIdx = 1;
 
-  for (const row of attendance ?? []) {
-    const name = tutorNameFromJoin(
-      row.tutors as { name?: string } | { name?: string }[] | null,
-    );
+  for (let dayIdx = 0; dayIdx < tutorDates.length; dayIdx++) {
+    const dateKey = tutorDates[dayIdx];
+    const dayRows = attendanceByDate.get(dateKey) ?? [];
 
-    if (lastDate && lastDate !== row.attendance_date) {
+    for (const row of dayRows) {
+      const name = tutorNameFromJoin(
+        row.tutors as { name?: string } | { name?: string }[] | null,
+      );
+
+      excelRowIdx += 1;
+      const excelRow = tutorsSheet.getRow(excelRowIdx);
+      excelRow.values = [
+        excelDate(row.attendance_date),
+        name,
+        row.scheduled_shift ?? "",
+        row.role ?? "Tutor",
+        excelTimeFromIso(row.time_in),
+        excelTimeFromIso(row.time_out),
+        row.total_hours ?? "",
+        row.notes ?? "",
+      ];
+      excelRow.font = { name: "Calibri", size: 11 };
+      excelRow.getCell(1).numFmt = "mm-dd-yy";
+      excelRow.getCell(5).numFmt = "h:mm";
+      excelRow.getCell(6).numFmt = "h:mm";
+      if (typeof row.total_hours === "number") {
+        excelRow.getCell(7).numFmt = "0.##";
+      }
+      excelRow.commit();
+    }
+
+    if (dayIdx < tutorDates.length - 1) {
       excelRowIdx += 1;
       writeDaySeparator(tutorsSheet, excelRowIdx, TUTOR_HEADERS.length);
     }
-    lastDate = row.attendance_date;
-
-    excelRowIdx += 1;
-    const excelRow = tutorsSheet.getRow(excelRowIdx);
-    excelRow.values = [
-      excelDate(row.attendance_date),
-      name,
-      row.scheduled_shift ?? "",
-      row.role ?? "Tutor",
-      excelTimeFromIso(row.time_in),
-      excelTimeFromIso(row.time_out),
-      row.total_hours ?? "",
-      row.notes ?? "",
-    ];
-    excelRow.font = { name: "Calibri", size: 11 };
-    excelRow.getCell(1).numFmt = "mm-dd-yy";
-    excelRow.getCell(5).numFmt = "h:mm";
-    excelRow.getCell(6).numFmt = "h:mm";
-    if (typeof row.total_hours === "number") {
-      excelRow.getCell(7).numFmt = "0.##";
-    }
-    excelRow.commit();
   }
 
   const tutoree = wb.addWorksheet("Tutoree");
@@ -307,39 +344,46 @@ export async function buildAttendanceWorkbook(from: string, to: string) {
   styleHeaderRow(headerVisit, TUTOREE_HEADERS.length);
   headerVisit.commit();
 
-  let lastVisitDate = "";
+  const visitsByDate = groupRowsByDate(visits ?? [], (row) => row.visit_date);
+  const visitDates = sortedDatesInRange(from, to).filter((d) =>
+    visitsByDate.has(d),
+  );
   let r = 1;
-  for (const row of visits ?? []) {
-    const helper = tutorNameFromJoin(
-      row.tutors as { name?: string } | { name?: string }[] | null,
-    );
-    if (lastVisitDate && lastVisitDate !== row.visit_date) {
+
+  for (let dayIdx = 0; dayIdx < visitDates.length; dayIdx++) {
+    const dateKey = visitDates[dayIdx];
+    const dayRows = visitsByDate.get(dateKey) ?? [];
+
+    for (const row of dayRows) {
+      const helper = tutorNameFromJoin(
+        row.tutors as { name?: string } | { name?: string }[] | null,
+      );
+
+      r += 1;
+      const email = (row.student_email ?? "").trim();
+      const excelRow = tutoree.getRow(r);
+      excelRow.values = [
+        excelDate(row.visit_date),
+        row.student_name,
+        email,
+        excelTimeFromIso(row.time_in),
+        excelTimeFromIso(row.time_out),
+        templateDuration(row.duration_minutes),
+        row.course ?? "",
+        helper,
+        row.notes ?? "",
+      ];
+      excelRow.font = { name: "Calibri", size: 11 };
+      excelRow.getCell(1).numFmt = "mm-dd-yy";
+      excelRow.getCell(4).numFmt = "h:mm";
+      excelRow.getCell(5).numFmt = "h:mm";
+      excelRow.commit();
+    }
+
+    if (dayIdx < visitDates.length - 1) {
       r += 1;
       writeDaySeparator(tutoree, r, TUTOREE_HEADERS.length);
     }
-    lastVisitDate = row.visit_date;
-
-    r += 1;
-    const email = (row.student_email ?? "").trim();
-    const excelRow = tutoree.getRow(r);
-    // Plain text email (no mailto hyperlink) — hyperlink rels from ExcelJS
-    // have triggered Excel repair dialogs on some builds.
-    excelRow.values = [
-      excelDate(row.visit_date),
-      row.student_name,
-      email,
-      excelTimeFromIso(row.time_in),
-      excelTimeFromIso(row.time_out),
-      templateDuration(row.duration_minutes),
-      row.course ?? "",
-      helper,
-      row.notes ?? "",
-    ];
-    excelRow.font = { name: "Calibri", size: 11 };
-    excelRow.getCell(1).numFmt = "mm-dd-yy";
-    excelRow.getCell(4).numFmt = "h:mm";
-    excelRow.getCell(5).numFmt = "h:mm";
-    excelRow.commit();
   }
 
   const raw = Buffer.from(await wb.xlsx.writeBuffer());
