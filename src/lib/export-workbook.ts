@@ -1,4 +1,6 @@
 import ExcelJS from "exceljs";
+import fs from "fs/promises";
+import path from "path";
 import JSZip from "jszip";
 import { createClient } from "@/lib/supabase/server";
 import { schedule, slotLabel, TIMEZONE } from "@/lib/schedule";
@@ -41,12 +43,6 @@ const BLUE_SEP: ExcelJS.Fill = {
   fgColor: { argb: "FF0070C0" },
 };
 
-const HEADER_FILL: ExcelJS.Fill = {
-  type: "pattern",
-  pattern: "solid",
-  fgColor: { argb: "FF2C3E50" },
-};
-
 const TUTOR_HEADERS = [
   "date",
   "tutor name",
@@ -70,8 +66,22 @@ const TUTOREE_HEADERS = [
   "notes",
 ] as const;
 
-const TUTOR_WIDTHS = [12, 22, 16, 14, 14, 14, 10, 28];
-const TUTOREE_WIDTHS = [12, 18, 24, 10, 10, 10, 18, 22, 24];
+/** Column widths from attendance-template.xlsx */
+const TUTOR_WIDTHS = [21, 25.14, 22.14, 16.86, 25.57, 17.43, 15, 33.43];
+const TUTOREE_WIDTHS = [24, 15, 21, 22, 21, 10, 22, 28, 34];
+
+async function loadTemplateWorkbook(): Promise<ExcelJS.Workbook> {
+  const file = path.join(
+    process.cwd(),
+    "src",
+    "data",
+    "attendance-template.xlsx",
+  );
+  const buf = await fs.readFile(file);
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(buf as unknown as ArrayBuffer);
+  return wb;
+}
 
 function tutorNameFromJoin(
   tutors:
@@ -85,20 +95,6 @@ function tutorNameFromJoin(
   return tutors.name ?? "";
 }
 
-function styleHeaderRow(row: ExcelJS.Row, colCount: number) {
-  row.font = { name: "Calibri", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
-  row.fill = HEADER_FILL;
-  for (let c = 1; c <= colCount; c++) {
-    row.getCell(c).fill = HEADER_FILL;
-    row.getCell(c).font = {
-      name: "Calibri",
-      size: 11,
-      bold: true,
-      color: { argb: "FFFFFFFF" },
-    };
-  }
-}
-
 /** Blank blue band between calendar days (matches attendance template). */
 function writeDaySeparator(ws: ExcelJS.Worksheet, rowIdx: number, colCount: number) {
   const sep = ws.getRow(rowIdx);
@@ -107,24 +103,9 @@ function writeDaySeparator(ws: ExcelJS.Worksheet, rowIdx: number, colCount: numb
     const cell = sep.getCell(c);
     cell.value = null;
     cell.fill = BLUE_SEP;
-    cell.border = {
-      top: { style: "thin", color: { argb: "FF0070C0" } },
-      bottom: { style: "thin", color: { argb: "FF0070C0" } },
-      left: { style: "thin", color: { argb: "FF0070C0" } },
-      right: { style: "thin", color: { argb: "FF0070C0" } },
-    };
   }
+  sep.font = { name: "Calibri", size: 11 };
   sep.commit();
-}
-
-function sortedDatesInRange(from: string, to: string): string[] {
-  const out: string[] = [];
-  const start = new Date(`${from}T12:00:00Z`);
-  const end = new Date(`${to}T12:00:00Z`);
-  for (let d = start; d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
-    out.push(d.toISOString().slice(0, 10));
-  }
-  return out;
 }
 
 function groupRowsByDate<T>(rows: T[], getDate: (row: T) => string): Map<string, T[]> {
@@ -138,78 +119,69 @@ function groupRowsByDate<T>(rows: T[], getDate: (row: T) => string): Map<string,
   return map;
 }
 
-function buildScheduleSheet(wb: ExcelJS.Workbook) {
-  const ws = wb.addWorksheet("General schedule");
-  // Day-stacked layout — irregular shifts (e.g. 1:20–3:20) don't fit a
-  // shared hourly grid without empty/misleading cells.
-  ws.getColumn(1).width = 18;
-  ws.getColumn(2).width = 56;
-  ws.getColumn(3).width = 42;
-
+function fillScheduleSheet(ws: ExcelJS.Worksheet) {
   const title =
     schedule.title || "ETC General Tutoring Schedule (All Courses)";
   ws.getCell(1, 1).value = title;
-  ws.getCell(1, 1).font = { name: "Calibri", size: 14, bold: true };
-  ws.mergeCells(1, 1, 1, 3);
 
   const days = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
-  const dayLabels = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+  const allSlots = new Set<string>();
+  for (const d of days) {
+    Object.keys(schedule.days[d] ?? {}).forEach((s) => allSlots.add(s));
+  }
+  const slots = Array.from(allSlots).sort();
 
-  let rowIdx = 3;
-  for (let d = 0; d < days.length; d++) {
-    const dayKey = days[d];
-    const dayHeader = ws.getRow(rowIdx);
-    dayHeader.getCell(1).value = dayLabels[d];
-    dayHeader.getCell(1).font = {
-      name: "Calibri",
-      size: 12,
-      bold: true,
-      color: { argb: "FFFFFFFF" },
-    };
-    for (let c = 1; c <= 3; c++) {
-      dayHeader.getCell(c).fill = HEADER_FILL;
+  for (let i = 0; i < slots.length; i++) {
+    const rowIdx = 3 + i;
+    const slot = slots[i];
+    const row = ws.getRow(rowIdx);
+    row.getCell(1).value = slotLabel(slot);
+    for (let c = 0; c < days.length; c++) {
+      const tutors = schedule.days[days[c]]?.[slot] ?? [];
+      row.getCell(c + 2).value = tutors
+        .map((t) =>
+          t.courses.length
+            ? `${t.name} (${t.courses.join(", ")})`
+            : t.name,
+        )
+        .join("\n");
+      row.getCell(c + 2).alignment = { wrapText: true, vertical: "top" };
     }
-    dayHeader.commit();
-    rowIdx += 1;
-
-    const colHeader = ws.getRow(rowIdx);
-    colHeader.values = ["Shift", "Tutor", "Courses"];
-    styleHeaderRow(colHeader, 3);
-    colHeader.commit();
-    rowIdx += 1;
-
-    const shifts = Object.keys(schedule.days[dayKey] ?? {}).sort((a, b) => {
-      const [as, ae] = a.split("-");
-      const [bs] = b.split("-");
-      const am = Number(as.split(":")[0]) * 60 + Number(as.split(":")[1]);
-      const bm = Number(bs.split(":")[0]) * 60 + Number(bs.split(":")[1]);
-      if (am !== bm) return am - bm;
-      const aem = Number(ae.split(":")[0]) * 60 + Number(ae.split(":")[1]);
-      const bem = Number(b.split("-")[1].split(":")[0]) * 60 + Number(b.split("-")[1].split(":")[1]);
-      return aem - bem;
-    });
-
-    for (const slot of shifts) {
-      const tutors = schedule.days[dayKey]?.[slot] ?? [];
-      for (const t of tutors) {
-        const row = ws.getRow(rowIdx);
-        row.getCell(1).value = slotLabel(slot);
-        row.getCell(2).value = t.name;
-        row.getCell(3).value = t.courses.join(", ");
-        row.font = { name: "Calibri", size: 11 };
-        row.commit();
-        rowIdx += 1;
-      }
-    }
-    rowIdx += 1; // blank between days
+    row.font = { name: "Calibri", size: 11 };
+    row.commit();
   }
 }
 
 /**
- * Excel Desktop rejects some ExcelJS packages that include empty ZIP
- * directory entries and leftover Content_Types defaults (e.g. vml) with
- * no matching parts. Rewrite the archive as files-only.
+ * Drop and recreate a data sheet. ExcelJS spliceRows leaves stale rows/tables
+ * that produce files Excel cannot open.
  */
+function replaceSheet(
+  wb: ExcelJS.Workbook,
+  name: string,
+  widths: number[],
+): ExcelJS.Worksheet {
+  const existing = wb.getWorksheet(name);
+  if (existing) {
+    try {
+      const tables =
+        (existing as unknown as { tables?: Record<string, unknown> }).tables ??
+        {};
+      for (const key of Object.keys(tables)) {
+        existing.removeTable(key);
+      }
+    } catch {
+      /* ignore */
+    }
+    wb.removeWorksheet(existing.id);
+  }
+  const ws = wb.addWorksheet(name);
+  widths.forEach((w, i) => {
+    ws.getColumn(i + 1).width = w;
+  });
+  return ws;
+}
+
 async function sanitizeXlsxForExcel(buffer: Buffer): Promise<Buffer> {
   const incoming = await JSZip.loadAsync(buffer);
   const outgoing = new JSZip();
@@ -221,7 +193,6 @@ async function sanitizeXlsxForExcel(buffer: Buffer): Promise<Buffer> {
 
     let data = await entry.async("nodebuffer");
     if (name === "[Content_Types].xml") {
-      // Drop unused Default Extension="vml" left by template-derived writes.
       data = Buffer.from(
         data
           .toString("utf8")
@@ -229,8 +200,6 @@ async function sanitizeXlsxForExcel(buffer: Buffer): Promise<Buffer> {
         "utf8",
       );
     }
-    // createFolders:false avoids empty ZIP directory entries that Excel
-    // Desktop frequently reports as "file is corrupt".
     outgoing.file(name, data, { createFolders: false });
   }
 
@@ -270,32 +239,25 @@ export async function buildAttendanceWorkbook(from: string, to: string) {
   if (aErr) throw new Error(aErr.message);
   if (vErr) throw new Error(vErr.message);
 
-  // Build from scratch — cloning the SharePoint attendance template via
-  // ExcelJS leaves slicer/#N/A names, vml Content_Types, and ZIP directory
-  // entries that Microsoft Excel reports as corrupt.
-  const wb = new ExcelJS.Workbook();
+  const wb = await loadTemplateWorkbook();
   wb.creator = "ETC Operations";
   wb.created = new Date();
   wb.modified = new Date();
 
-  buildScheduleSheet(wb);
+  const sched = wb.getWorksheet("General schedule");
+  if (sched) fillScheduleSheet(sched);
 
-  const tutorsSheet = wb.addWorksheet("Tutors");
-  TUTOR_WIDTHS.forEach((w, i) => {
-    tutorsSheet.getColumn(i + 1).width = w;
-  });
+  const tutorsSheet = replaceSheet(wb, "Tutors", TUTOR_WIDTHS);
   const headerTutor = tutorsSheet.getRow(1);
-  headerTutor.values = [...TUTOR_HEADERS];
-  styleHeaderRow(headerTutor, TUTOR_HEADERS.length);
+  headerTutor.values = [undefined, ...TUTOR_HEADERS];
+  headerTutor.font = { name: "Calibri", size: 11 };
   headerTutor.commit();
 
   const attendanceByDate = groupRowsByDate(
     attendance ?? [],
     (row) => row.attendance_date,
   );
-  const tutorDates = sortedDatesInRange(from, to).filter((d) =>
-    attendanceByDate.has(d),
-  );
+  const tutorDates = [...attendanceByDate.keys()].sort();
   let excelRowIdx = 1;
 
   for (let dayIdx = 0; dayIdx < tutorDates.length; dayIdx++) {
@@ -310,6 +272,7 @@ export async function buildAttendanceWorkbook(from: string, to: string) {
       excelRowIdx += 1;
       const excelRow = tutorsSheet.getRow(excelRowIdx);
       excelRow.values = [
+        undefined,
         excelDate(row.attendance_date),
         name,
         row.scheduled_shift ?? "",
@@ -320,11 +283,11 @@ export async function buildAttendanceWorkbook(from: string, to: string) {
         row.notes ?? "",
       ];
       excelRow.font = { name: "Calibri", size: 11 };
-      excelRow.getCell(1).numFmt = "mm-dd-yy";
-      excelRow.getCell(5).numFmt = "h:mm";
+      excelRow.getCell(2).numFmt = "mm-dd-yy";
       excelRow.getCell(6).numFmt = "h:mm";
+      excelRow.getCell(7).numFmt = "h:mm";
       if (typeof row.total_hours === "number") {
-        excelRow.getCell(7).numFmt = "0.##";
+        excelRow.getCell(8).numFmt = "0.##";
       }
       excelRow.commit();
     }
@@ -335,19 +298,14 @@ export async function buildAttendanceWorkbook(from: string, to: string) {
     }
   }
 
-  const tutoree = wb.addWorksheet("Tutoree");
-  TUTOREE_WIDTHS.forEach((w, i) => {
-    tutoree.getColumn(i + 1).width = w;
-  });
+  const tutoree = replaceSheet(wb, "Tutoree", TUTOREE_WIDTHS);
   const headerVisit = tutoree.getRow(1);
-  headerVisit.values = [...TUTOREE_HEADERS];
-  styleHeaderRow(headerVisit, TUTOREE_HEADERS.length);
+  headerVisit.values = [undefined, ...TUTOREE_HEADERS];
+  headerVisit.font = { name: "Calibri", size: 11 };
   headerVisit.commit();
 
   const visitsByDate = groupRowsByDate(visits ?? [], (row) => row.visit_date);
-  const visitDates = sortedDatesInRange(from, to).filter((d) =>
-    visitsByDate.has(d),
-  );
+  const visitDates = [...visitsByDate.keys()].sort();
   let r = 1;
 
   for (let dayIdx = 0; dayIdx < visitDates.length; dayIdx++) {
@@ -363,6 +321,7 @@ export async function buildAttendanceWorkbook(from: string, to: string) {
       const email = (row.student_email ?? "").trim();
       const excelRow = tutoree.getRow(r);
       excelRow.values = [
+        undefined,
         excelDate(row.visit_date),
         row.student_name,
         email,
@@ -374,9 +333,9 @@ export async function buildAttendanceWorkbook(from: string, to: string) {
         row.notes ?? "",
       ];
       excelRow.font = { name: "Calibri", size: 11 };
-      excelRow.getCell(1).numFmt = "mm-dd-yy";
-      excelRow.getCell(4).numFmt = "h:mm";
+      excelRow.getCell(2).numFmt = "mm-dd-yy";
       excelRow.getCell(5).numFmt = "h:mm";
+      excelRow.getCell(6).numFmt = "h:mm";
       excelRow.commit();
     }
 
