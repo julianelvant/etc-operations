@@ -6,6 +6,7 @@ import {
   TIMELINE_END_MIN,
   TIMELINE_START_MIN,
   beirutMinutes,
+  canCheckInToShift,
   type MergedShift,
   type ShiftRole,
 } from "@/lib/schedule";
@@ -36,6 +37,7 @@ type Props = {
   attendance: TutorAttendanceRow[];
   nameToTutor: Map<string, TutorRow>;
   checkedInIds: Set<string>;
+  nowMin?: number;
   isToday: boolean;
   isPending?: (key: string) => boolean;
   onCheckIn?: (tutor: TutorRow, scheduledShift: string) => void;
@@ -98,6 +100,7 @@ function AgendaCard({
   readOnly,
   isPending,
   checkedInIds,
+  nowMin,
   onCheckIn,
   onEditAttendance,
 }: {
@@ -106,17 +109,37 @@ function AgendaCard({
   readOnly: boolean;
   isPending: (key: string) => boolean;
   checkedInIds: Set<string>;
+  nowMin: number;
   onCheckIn?: (tutor: TutorRow, scheduledShift: string) => void;
   onEditAttendance?: (attendanceId: string) => void;
 }) {
   const pending = b.tutor && isPending(`in:${b.tutor.id}`);
+  const shiftOpen =
+    b.tutor &&
+    canCheckInToShift(
+      {
+        name: b.name,
+        courses: b.courses,
+        start: b.startMin,
+        end: b.endMin,
+        shiftLabel: b.shiftLabel,
+        role: b.role,
+        source: b.isRecurring ? "recurring" : "schedule",
+        isRecurring: b.isRecurring,
+      },
+      nowMin,
+      checkedInIds,
+      [],
+      b.tutor.id,
+    );
   const canCheckIn =
     !readOnly &&
     isToday &&
     Boolean(onCheckIn) &&
     b.tutor &&
     b.status === "scheduled" &&
-    !checkedInIds.has(b.tutor.id);
+    !checkedInIds.has(b.tutor.id) &&
+    shiftOpen;
 
   const surface =
     b.status === "here"
@@ -177,6 +200,7 @@ export function DayCalendar({
   attendance,
   nameToTutor,
   checkedInIds,
+  nowMin: nowMinProp,
   isToday,
   isPending = () => false,
   onCheckIn,
@@ -185,6 +209,7 @@ export function DayCalendar({
 }: Props) {
   const rangeStart = TIMELINE_START_MIN;
   const rangeEnd = TIMELINE_END_MIN;
+  const nowMin = nowMinProp ?? beirutMinutes(new Date().toISOString());
   const [filter, setFilter] = useState<Filter>("all");
   const [completedOpen, setCompletedOpen] = useState(!isToday);
 
@@ -402,6 +427,7 @@ export function DayCalendar({
                       readOnly={readOnly}
                       isPending={isPending}
                       checkedInIds={checkedInIds}
+                      nowMin={nowMin}
                       onCheckIn={onCheckIn}
                       onEditAttendance={onEditAttendance}
                     />
@@ -437,6 +463,7 @@ export function DayCalendar({
                       readOnly={readOnly}
                       isPending={isPending}
                       checkedInIds={checkedInIds}
+                      nowMin={nowMin}
                       onCheckIn={onCheckIn}
                       onEditAttendance={onEditAttendance}
                     />

@@ -69,6 +69,7 @@ export const config = {
     "/api/import/:path*",
     "/api/data-editor",
     "/api/schedule",
+    "/api/schedule/recurring",
     "/api/admin/:path*",
     "/api/session/:path*",
   ],

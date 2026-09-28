@@ -2,6 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { TutorAttendanceRow, TutorRow } from "@/lib/attendance";
+import {
+  isTutorCheckInBlocked,
+  type AttendanceInterval,
+  type MergedShift,
+} from "@/lib/schedule";
 import type { DeskPanel } from "./desk-types";
 import { CourseList } from "./course-list";
 
@@ -14,6 +19,9 @@ type Props = {
   openTutors: TutorAttendanceRow[];
   checkedInIds: Set<string>;
   isToday: boolean;
+  nowMin: number;
+  dayShifts: MergedShift[];
+  closedIntervals: AttendanceInterval[];
   isPending: (key: string) => boolean;
   defaultTutorId: string;
   initialQuery?: string;
@@ -37,6 +45,9 @@ export function CheckInPanels({
   openTutors,
   checkedInIds,
   isToday,
+  nowMin,
+  dayShifts,
+  closedIntervals,
   isPending,
   defaultTutorId,
   initialQuery = "",
@@ -206,11 +217,22 @@ export function CheckInPanels({
                   No matches.
                 </li>
               ) : (
-                available.map((t) => (
+                available.map((t) => {
+                  const blocked = isTutorCheckInBlocked(
+                    t.id,
+                    t.name,
+                    dayShifts,
+                    nowMin,
+                    checkedInIds,
+                    closedIntervals,
+                  );
+                  return (
                   <li key={t.id}>
                     <button
                       type="button"
-                      disabled={isPending(`in:${t.id}`) || !isToday}
+                      disabled={
+                        isPending(`in:${t.id}`) || !isToday || blocked
+                      }
                       onClick={() =>
                         onCheckIn(t, {
                           notes: tutorNotes,
@@ -226,11 +248,12 @@ export function CheckInPanels({
                         <CourseList courses={t.courses} className="mt-1.5" />
                       </span>
                       <span className="w-20 shrink-0 text-right text-sm font-semibold text-brand-ink">
-                        Check in
+                        {blocked ? "Not now" : "Check in"}
                       </span>
                     </button>
                   </li>
-                ))
+                  );
+                })
               )}
             </ul>
           </div>

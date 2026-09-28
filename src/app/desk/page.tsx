@@ -12,6 +12,7 @@ import {
   getWeekDates,
 } from "@/lib/schedule";
 import { loadScheduleDays } from "@/lib/schedule-roster";
+import { syncSchedulePeopleToTutors } from "@/lib/tutor-sync";
 import { createWriteClient } from "@/lib/supabase/write";
 import { DeskClient } from "./desk-client";
 import { redirect } from "next/navigation";
@@ -36,6 +37,7 @@ export default async function DeskPage({
       : today;
 
   const supabase = await createWriteClient();
+  await syncSchedulePeopleToTutors(supabase);
   const scheduleDays = await loadScheduleDays(supabase);
   const { dayKey, slots, isToday } = getScheduleForDate(date, scheduleDays);
   const week = getWeekDates(date);

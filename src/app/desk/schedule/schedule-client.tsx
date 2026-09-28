@@ -201,7 +201,7 @@ export function ScheduleClient() {
         courses: recurringForm.courses,
         notes: recurringForm.notes,
       };
-      const res = await fetch("/api/admin/calendar-recurring", {
+      const res = await fetch("/api/schedule/recurring", {
         method: recurringForm.id ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
@@ -224,7 +224,7 @@ export function ScheduleClient() {
     if (!window.confirm(`Deactivate recurring entry for ${name}?`)) return;
     setBusy(true);
     try {
-      const res = await fetch("/api/admin/calendar-recurring", {
+      const res = await fetch("/api/schedule/recurring", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),

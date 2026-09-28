@@ -66,7 +66,7 @@ export function DueNowBoard({
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <StatusPill status={row.status} />
-                  {tutor && isToday ? (
+                  {tutor && isToday && row.status === "due" ? (
                     <button
                       type="button"
                       disabled={pending}
@@ -75,6 +75,10 @@ export function DueNowBoard({
                     >
                       Check in
                     </button>
+                  ) : row.status === "late" ? (
+                    <span className="text-xs font-medium text-[var(--status-late-ink)]">
+                      Too late
+                    </span>
                   ) : null}
                 </div>
               </li>

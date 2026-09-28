@@ -14,6 +14,7 @@ import {
 import { listCalendarRecurring } from "@/lib/calendar-recurring";
 import { schedule } from "@/lib/schedule";
 import { logAttendanceEvent } from "@/lib/data/audit";
+import { ensureTutorForPerson } from "@/lib/tutor-sync";
 import { createWriteClient } from "@/lib/supabase/write";
 
 const ROLES: ScheduleRosterRole[] = ["Tutor", "TA", "Coordinator", "Other"];
@@ -95,13 +96,16 @@ export async function POST(request: Request) {
     }
 
     const supabase = await createWriteClient();
+    const courses = parseCourses(body.courses);
     const entry = await createScheduleRosterEntry(supabase, {
       weekday,
       time_slot,
       person_name,
-      courses: parseCourses(body.courses),
+      courses,
       role: parseRole(body.role),
     });
+
+    await ensureTutorForPerson(supabase, person_name, courses);
 
     await logAttendanceEvent(supabase, {
       actor: session.username,
@@ -153,6 +157,12 @@ export async function PATCH(request: Request) {
 
     const supabase = await createWriteClient();
     const entry = await updateScheduleRosterEntry(supabase, id, patch);
+
+    await ensureTutorForPerson(
+      supabase,
+      entry.person_name,
+      entry.courses,
+    );
 
     await logAttendanceEvent(supabase, {
       actor: session.username,

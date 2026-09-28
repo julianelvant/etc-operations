@@ -563,6 +563,45 @@ export type ShiftBoards = {
 };
 
 /** Split today's merged shifts into due-now / later / done (excludes Here). */
+/** Block check-in when someone is on today's schedule but outside the due window. */
+export function isTutorCheckInBlocked(
+  tutorId: string,
+  tutorName: string,
+  shifts: MergedShift[],
+  nowMin: number,
+  openTutorIds: Set<string> = new Set(),
+  closedIntervals: AttendanceInterval[] = [],
+): boolean {
+  const tutorShifts = shifts.filter(
+    (s) => s.name.toLowerCase() === tutorName.toLowerCase(),
+  );
+  if (tutorShifts.length === 0) return false;
+  if (openTutorIds.has(tutorId)) return true;
+
+  const allowed = tutorShifts.some((s) =>
+    canCheckInToShift(s, nowMin, openTutorIds, closedIntervals, tutorId),
+  );
+  return !allowed;
+}
+
+/** True when a scheduled shift is in the check-in window (not early, late, or ended). */
+export function canCheckInToShift(
+  shift: MergedShift,
+  nowMin: number,
+  openTutorIds: Set<string> = new Set(),
+  closedIntervals: AttendanceInterval[] = [],
+  tutorId?: string,
+): boolean {
+  const status = getShiftStatus(
+    shift,
+    nowMin,
+    openTutorIds,
+    closedIntervals,
+    tutorId,
+  );
+  return status === "due";
+}
+
 export function bucketShiftsForDesk(
   shifts: MergedShift[],
   nowMin: number,
