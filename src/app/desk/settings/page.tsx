@@ -5,7 +5,6 @@ import { getSession } from "@/lib/auth/session";
 import { getBeirutParts, TIMEZONE } from "@/lib/schedule";
 import { ImportExcelHistoryButton } from "./import-excel-button";
 import { DataDurabilityPanel } from "./data-durability-panel";
-import { RecurringCalendarPanel } from "./recurring-calendar-panel";
 
 export const metadata: Metadata = {
   title: "Settings",
@@ -48,9 +47,14 @@ export default async function SettingsPage() {
         <div className="grid gap-1 px-5 py-4 sm:grid-cols-3 sm:gap-4">
           <dt className="text-sm font-medium text-muted">Schedule</dt>
           <dd className="sm:col-span-2 text-sm text-ink">
-            Weekly roster from{" "}
-            <code className="rounded bg-bg px-1 text-xs">schedule.json</code>,
-            plus recurring entries you manage below.
+            Weekly roster is edited on the{" "}
+            <Link
+              href="/desk/schedule"
+              className="font-semibold text-brand-ink underline focus-ring rounded"
+            >
+              Schedule
+            </Link>{" "}
+            tab, including recurring people.
           </dd>
         </div>
         <div className="grid gap-1 px-5 py-4 sm:grid-cols-3 sm:gap-4">
@@ -63,7 +67,7 @@ export default async function SettingsPage() {
                   href="/admin/accounts"
                   className="font-semibold text-brand-ink underline focus-ring rounded"
                 >
-                  Admin → Accounts
+                  Admin → Administrative assistants
                 </Link>
                 .
               </>
@@ -76,7 +80,6 @@ export default async function SettingsPage() {
 
       {isAdmin ? (
         <div className="mt-8 space-y-8">
-          <RecurringCalendarPanel />
           <DataDurabilityPanel />
           <ImportExcelHistoryButton />
         </div>

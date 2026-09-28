@@ -21,7 +21,11 @@ export default async function AdminLayout({
         contained
         navItems={[
           { href: "/admin", label: "Overview", match: "exact" },
-          { href: "/admin/accounts", label: "Accounts", match: "prefix" },
+          {
+            href: "/admin/accounts",
+            label: "Administrative assistants",
+            match: "prefix",
+          },
           { href: "/desk", label: "Desk", match: "prefix" },
           { href: "/desk/export", label: "Export", match: "prefix" },
         ]}

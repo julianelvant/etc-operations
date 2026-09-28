@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { getBeirutParts, getScheduleForDate } from "@/lib/schedule";
+import { loadScheduleDays } from "@/lib/schedule-roster";
+import { createWriteClient } from "@/lib/supabase/write";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -51,7 +53,9 @@ export async function GET(request: NextRequest) {
     return { ...row, tutors: tutorsJoin ?? null };
   });
 
-  const { dayKey, slots, isToday } = getScheduleForDate(date);
+  const writeClient = await createWriteClient();
+  const scheduleDays = await loadScheduleDays(writeClient);
+  const { dayKey, slots, isToday } = getScheduleForDate(date, scheduleDays);
 
   return NextResponse.json({
     date,

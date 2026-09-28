@@ -11,6 +11,7 @@ import {
   getScheduleForDate,
   getWeekDates,
 } from "@/lib/schedule";
+import { loadScheduleDays } from "@/lib/schedule-roster";
 import { createWriteClient } from "@/lib/supabase/write";
 import { DeskClient } from "./desk-client";
 import { redirect } from "next/navigation";
@@ -34,10 +35,11 @@ export default async function DeskPage({
       ? params.date
       : today;
 
-  const { dayKey, slots, isToday } = getScheduleForDate(date);
+  const supabase = await createWriteClient();
+  const scheduleDays = await loadScheduleDays(supabase);
+  const { dayKey, slots, isToday } = getScheduleForDate(date, scheduleDays);
   const week = getWeekDates(date);
 
-  const supabase = await createWriteClient();
   const [tutors, attendance, visits, recurring] = await Promise.all([
     listTutors(),
     getAttendanceForDate(date),
